@@ -15,7 +15,7 @@ end
 
 
 
-game.on_init(function()
+script.on_init(function()
 
   if global.tf == nil then
     global.tf = {}
@@ -37,7 +37,7 @@ end)
 
 
 
-game.on_event(defines.events.on_player_created, function(event)
+script.on_event(defines.events.on_player_created, function(event)
   if global.tf.playersData[event.player_index] == nil then
     global.tf.playersData[event.player_index] = {}
     global.tf.playersData[event.player_index].guiOpened = false
@@ -47,7 +47,7 @@ end)
 
 
 
-game.on_load(function()
+script.on_load(function()
   for _, plantTypes in pairs(global.tf.seedPrototypes) do
     if plantTypes.efficiency.other == 0 then
       plantTypes.efficiency.other = 0.01
@@ -68,7 +68,7 @@ end)
 
 
 
-game.on_event(defines.events.on_gui_click, function(event)
+script.on_event(defines.events.on_gui_click, function(event)
   local index = -1
 
   for k,field in ipairs(global.tf.fieldList) do
@@ -117,7 +117,7 @@ end)
 
 
 
-game.on_event(defines.events.on_put_item, function(event)
+script.on_event(defines.events.on_put_item, function(event)
   for playerIndex,player in pairs(game.players) do
     if (player ~= nil) and (player.selected ~= nil) then
       if player.selected.name == "tf-fieldmk2" then
@@ -134,7 +134,7 @@ end)
 
 
 
-game.on_event(defines.events.on_built_entity, function(event)
+script.on_event(defines.events.on_built_entity, function(event)
   local player = game.players[event.player_index]
   if event.created_entity.type == "tree" then
     local currentSeedTypeName = seedTypeLookUpTable[event.created_entity.name]
@@ -192,7 +192,7 @@ game.on_event(defines.events.on_built_entity, function(event)
 end)
 
 
-game.on_event(defines.events.on_robot_built_entity, function(event)
+script.on_event(defines.events.on_robot_built_entity, function(event)
   local player = game.players[event.player_index]
   if event.created_entity.type == "tree" then
     local currentSeedTypeName = seedTypeLookUpTable[event.created_entity.name]
@@ -251,7 +251,7 @@ end)
 
 
 
-game.on_event(defines.events.on_tick, function(event)
+script.on_event(defines.events.on_tick, function(event)
   while ((global.tf.fieldList[1] ~= nil) and (event.tick >= global.tf.fieldList[1].nextUpdate)) do
     local fieldEnt = global.tf.fieldList[1].entity
     if fieldEnt.valid then
