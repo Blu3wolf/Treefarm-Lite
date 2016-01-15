@@ -638,7 +638,7 @@ end
 function showFieldmk2GUI(index, playerIndex)
   local player = game.players[playerIndex]
   if player.gui.center.fieldmk2Root == nil then
-    local rootFrame = player.gui.center.add{type = "frame", name = "fieldmk2Root", caption = game.get_localised_entity_name("tf-fieldmk2"), direction = "vertical"}
+    local rootFrame = player.gui.center.add{type = "frame", name = "fieldmk2Root", caption = game.entity_prototypes["tf-fieldmk2"].localised_name, direction = "vertical"}
       local rootTable = rootFrame.add{type ="table", name = "fieldmk2Table", colspan = 4}
         rootTable.add{type = "label", name = "colLabel1", caption = {"thisFieldIs"}}
         local status = "active / not active"
