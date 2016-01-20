@@ -47,7 +47,7 @@ end)
 
 
 
-script.on_configuration_changed(function()
+script.on_load(function()
   for _, plantTypes in pairs(global.tf.seedPrototypes) do
     if plantTypes.efficiency.other == 0 then
       plantTypes.efficiency.other = 0.01
