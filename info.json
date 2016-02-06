@@ -1,8 +1,8 @@
 {
   "name": "Treefarm-Lite",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "title": "Treefarm-Lite",
-  "author": "drs, Blu3wolf",
+  "author": "drs, Blu3wolf", "stsimonas",
   "dependencies": ["base >= 0.12.12"],
   "description": "This mod enables you to cultivate trees and/or other plants.
 
