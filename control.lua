@@ -33,21 +33,22 @@ script.on_init(function()
       end
     end
   end
-end)
+  
+  for _, plantTypes in pairs(global.tf.seedPrototypes) do
+    if plantTypes.efficiency.other == 0 then
+      plantTypes.efficiency.other = 0.01
+    end
+  end
 
-
-
-script.on_event(defines.events.on_player_created, function(event)
-  if global.tf.playersData[event.player_index] == nil then
-    global.tf.playersData[event.player_index] = {}
-    global.tf.playersData[event.player_index].guiOpened = false
-    global.tf.playersData[event.player_index].overlayStack = {}
+  for seedTypeName, seedPrototype in pairs (global.tf.seedPrototypes) do
+    if game.item_prototypes[seedPrototype.states[1]] == nil then
+      global.tf.seedPrototypes[seedTypeName] = nil
+    end
   end
 end)
 
 
-
-script.on_load(function()
+script.on_configuration_changed(function(data)
   for _, plantTypes in pairs(global.tf.seedPrototypes) do
     if plantTypes.efficiency.other == 0 then
       plantTypes.efficiency.other = 0.01
@@ -66,6 +67,14 @@ script.on_load(function()
   populateSeedTypeLookUpTable()
 end)
 
+
+script.on_event(defines.events.on_player_created, function(event)
+  if global.tf.playersData[event.player_index] == nil then
+    global.tf.playersData[event.player_index] = {}
+    global.tf.playersData[event.player_index].guiOpened = false
+    global.tf.playersData[event.player_index].overlayStack = {}
+  end
+end)
 
 
 script.on_event(defines.events.on_gui_click, function(event)
