@@ -271,6 +271,9 @@ script.on_event(defines.events.on_tick, function(event)
     local seedTypeName
     local newState
     if removedEntity.entity.valid then
+      if next(seedTypeLookUpTable) == nil then
+      	populateSeedTypeLookUpTable()
+      end
       seedTypeName = seedTypeLookUpTable[removedEntity.entity.name]
       newState = removedEntity.state + 1
       if newState <= #global.tf.seedPrototypes[seedTypeName].states then
