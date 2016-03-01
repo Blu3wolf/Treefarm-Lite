@@ -45,7 +45,7 @@ script.on_event(defines.events.on_player_created, function(event)
   end
 end)
 
-script.on_event(defines.events.on_tick, function(event)
+--[[script.on_event(defines.events.on_tick, function(event)
 	local loaded = false
 	if loaded ~= true then
 		for _, plantTypes in pairs(global.tf.seedPrototypes) do
@@ -67,6 +67,7 @@ script.on_event(defines.events.on_tick, function(event)
 		loaded = true
 	end
 end)
+--]]
 
 script.on_event(defines.events.on_gui_click, function(event)
   local index = -1
@@ -270,6 +271,9 @@ script.on_event(defines.events.on_tick, function(event)
     local seedTypeName
     local newState
     if removedEntity.entity.valid then
+      if next(seedTypeLookUpTable) == nil then
+      	populateSeedTypeLookUpTable()
+      end
       seedTypeName = seedTypeLookUpTable[removedEntity.entity.name]
       newState = removedEntity.state + 1
       if newState <= #global.tf.seedPrototypes[seedTypeName].states then
