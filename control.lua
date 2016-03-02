@@ -2,8 +2,6 @@ require "defines"
 require "interfaces"
 
 
-
-
 local seedTypeLookUpTable = {}
 function populateSeedTypeLookUpTable()
   for seedTypeName, seedType in pairs(global.tf.seedPrototypes) do
@@ -13,7 +11,35 @@ function populateSeedTypeLookUpTable()
   end
 end
 
-
+--[[ 	treeTable = global.tf.treesToGrow[event.tick]
+		seedTable = 
+		{
+			entity = event.created_entity
+			state = 1
+			efficiency = newEfficiency
+		}
+		
+		example treeTable
+		
+		treeTable = 
+		{
+			{
+				entity = event.created_entity, 
+				state = 1,
+				efficiency = 0.98
+			},
+			{
+				entity = event.created_entity, 
+				state = 1,
+				efficiency = 0.98
+			},
+			{
+				entity = event.created_entity, 
+				state = 1,
+				efficiency = 0.98
+			}
+		}
+--]]
 
 script.on_init(function()
 
@@ -21,9 +47,10 @@ script.on_init(function()
     global.tf = {}
     global.tf.fieldList = {}
     global.tf.seedPrototypes = {}
+	global.tf.treesToGrow = {}
     defineStandardSeedPrototypes()
     populateSeedTypeLookUpTable()
-    global.tf.growing = {}
+    --global.tf.growing = {}
     global.tf.playersData = {}
     for pIndex, player in ipairs(game.players) do
       if global.tf.playersData[pIndex] == nil then
@@ -34,8 +61,6 @@ script.on_init(function()
     end
   end
 end)
-
-
 
 script.on_event(defines.events.on_player_created, function(event)
   if global.tf.playersData[event.player_index] == nil then
@@ -55,18 +80,6 @@ script.on_load(function()
 		seedTypeLookUpTable = {}
 	end
 	populateSeedTypeLookUpTable()
-end)
-
-script.on_event(defines.events.on_tick, function(event)
-	local loaded = false
-	if loaded ~= true then
-		for seedTypeName, seedPrototype in pairs (global.tf.seedPrototypes) do
-			if game.item_prototypes[seedPrototype.states[1]] == nil then
-				global.tf.seedPrototypes[seedTypeName] = nil
-			end
-		end
-		loaded = true
-	end
 end)
 
 script.on_event(defines.events.on_gui_click, function(event)
@@ -147,10 +160,9 @@ script.on_event(defines.events.on_built_entity, function(event)
       {
         entity = event.created_entity,
         state = 1,
-        efficiency = newEfficiency,
-        nextUpdate = nextUpdateIn
+        efficiency = newEfficiency
       }
-      placeSeedIntoList(entInfo)
+      insertSeed(entInfo, nextUpdateIn)
       return
     end
   elseif event.created_entity.name == "tf-field" then
@@ -205,10 +217,9 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
       {
         entity = event.created_entity,
         state = 1,
-        efficiency = newEfficiency,
-        nextUpdate = nextUpdateIn
+        efficiency = newEfficiency
       }
-      placeSeedIntoList(entInfo)
+      insertSeed(entInfo, nextUpdateIn)
       return
     end
   elseif event.created_entity.name == "tf-field" then
@@ -250,9 +261,25 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
   end
 end)
 
-
+script.on_event(defines.events.on_tick, function(event)
+-- this one is effectively an on_load event
+	local loaded = false
+	if loaded ~= true then
+		for seedTypeName, seedPrototype in pairs (global.tf.seedPrototypes) do
+			if game.item_prototypes[seedPrototype.states[1]] == nil then
+				global.tf.seedPrototypes[seedTypeName] = nil
+			end
+		end
+		loaded = true
+	end
+end)
 
 script.on_event(defines.events.on_tick, function(event)
+	if global.tf.treesToGrow[event.tick] ~= nil then
+		growTrees(global.tf.treesToGrow[event.tick])
+		global.tf.treesToGrow[event.tick] = nil
+	end
+
   while ((global.tf.fieldList[1] ~= nil) and (event.tick >= global.tf.fieldList[1].nextUpdate)) do
     local fieldEnt = global.tf.fieldList[1].entity
     if fieldEnt.valid then
@@ -266,7 +293,7 @@ script.on_event(defines.events.on_tick, function(event)
     end
   end
 
-  while ((global.tf.growing[1] ~= nil) and (event.tick >= global.tf.growing[1].nextUpdate)) do
+  --[[while ((global.tf.growing[1] ~= nil) and (event.tick >= global.tf.growing[1].nextUpdate)) do
     local removedEntity = table.remove(global.tf.growing, 1)
     local seedTypeName
     local newState
@@ -274,25 +301,44 @@ script.on_event(defines.events.on_tick, function(event)
       seedTypeName = seedTypeLookUpTable[removedEntity.entity.name]
       newState = removedEntity.state + 1
       if newState <= #global.tf.seedPrototypes[seedTypeName].states then
-        local tmpPos = removedEntity.entity.position
-        local newEnt = game.get_surface("nauvis").create_entity{name = global.tf.seedPrototypes[seedTypeLookUpTable[removedEntity.entity.name]].states[newState], position = tmpPos}
-        removedEntity.entity.destroy()
+        local tmpPos = removedEntity.entity.position  --]]
+	--	local newEnt = game.get_surface("nauvis").create_entity{name = global.tf.seedPrototypes[seedTypeLookUpTable[removedEntity.entity.name]].states[newState], position = tmpPos}
+	--[[	removedEntity.entity.destroy()
         local deltaTime = math.ceil((math.random() * global.tf.seedPrototypes[seedTypeName].randomGrowingTime + global.tf.seedPrototypes[seedTypeName].basicGrowingTime) / removedEntity.efficiency)
         local updatedEntry =
         {
           entity = newEnt,
           state = newState,
           efficiency = removedEntity.efficiency,
-          nextUpdate = event.tick + deltaTime
         }
-        placeSeedIntoList(updatedEntry)
+		local nextUpdate = event.tick + deltaTime
+        insertSeed(updatedEntry, nextUpdate)
       elseif (isInMk2Range(removedEntity.entity.position)) then
         removedEntity.entity.order_deconstruction(game.forces.player)
       end
     end
-  end
+  end --]]
 end)
 
+
+function growTrees(treeTable)
+	if treeTable[1] ~= nil then
+		for i, seedTable in pairs(treeTable) do
+			treeTable[i].state = treeTable[i].state + 1
+			if treeTable[i].state <= #global.tf.seedPrototypes[seedTypeLookUpTable[treeTable[i].entity.name]].states then
+				local tmpPos = treeTable[i].entity.position
+				local newEnt = game.get_surface("nauvis").create_entity{name = global.tf.seedPrototypes[seedTypeLookUpTable[treeTable[i].entity.name]].states[treeTable[i].state], position = tmpPos}
+				treeTable[i].entity.destroy()
+				treeTable[i].entity = newEnt
+				local deltaTime = math.ceil((math.random() * global.tf.seedPrototypes[seedTypeName].randomGrowingTime + global.tf.seedPrototypes[seedTypeName].basicGrowingTime) / removedEntity.efficiency)
+				local nextGrowthTick = event.tick + deltaTime
+				insertSeed(seedTable, nextGrowthTick)
+			elseif (isInMk2Range(treeTable[i].entity.position)) then
+				treeTable[i].entity.order_deconstruction(game.forces.player)
+			end
+		end
+	end
+end
 
 
 
@@ -340,8 +386,8 @@ function defineStandardSeedPrototypes()
 
       ["other"] = 0.01
     },
-    basicGrowingTime = 18000,
-    randomGrowingTime = 9000,
+    basicGrowingTime = 180, -- add two zeros
+    randomGrowingTime = 90, -- add two zeros
     fertilizerBoost = 1.00
   }
 
@@ -394,7 +440,7 @@ function calcEfficiency(entity, fertilizerApplied)
 end
 
 
-
+--[[
 function placeSeedIntoList(entInfo)
   if #global.tf.growing > 1 then
     for i = #global.tf.growing, 1, -1 do
@@ -413,6 +459,16 @@ function placeSeedIntoList(entInfo)
   else
     table.insert(global.tf.growing, entInfo)
   end
+end
+--]]
+
+
+function insertSeed(seedTable, nextGrowthTick)
+	if global.tf.treesToGrow[nextGrowthTick] == nil then
+		global.tf.treesToGrow[nextGrowthTick] = {}
+	end
+	
+	table.insert(global.tf.treesToGrow[nextGrowthTick], seedTable)
 end
 
 
@@ -505,15 +561,15 @@ function fieldMaintainer(tick)
       end
  
       local newEfficiency = calcEfficiency(newPlant, newFertilized)
+	  local nextUpdate = tick + math.ceil((math.random() * global.tf.seedPrototypes[seedTypeName].randomGrowingTime + global.tf.seedPrototypes[seedTypeName].basicGrowingTime) / newEfficiency)
       local entInfo =
       {
         entity = newPlant,
         state = 1,
-        efficiency = newEfficiency,
-        nextUpdate = tick + math.ceil((math.random() * global.tf.seedPrototypes[seedTypeName].randomGrowingTime + global.tf.seedPrototypes[seedTypeName].basicGrowingTime) / newEfficiency)
+        efficiency = newEfficiency
       }
       fieldObj.entity.get_inventory(1).remove{name = seedInInv.name, count = 1}
-      placeSeedIntoList(entInfo)
+      insertSeed(entInfo, nextUpdate)
     end
   end
 
@@ -614,15 +670,15 @@ function fieldmk2Maintainer(tick)
         newFertilized = true
       end
       local newEfficiency = calcEfficiency(newEntity, newFertilized)
+	  local nextUpdate = tick + math.ceil((math.random() * global.tf.seedPrototypes[seedTypeName].randomGrowingTime + global.tf.seedPrototypes[seedTypeName].basicGrowingTime) / newEfficiency)
       local entInfo =
       {
         entity = newEntity,
         state = 1,
-        efficiency = newEfficiency,
-        nextUpdate = tick + math.ceil((math.random() * global.tf.seedPrototypes[seedTypeName].randomGrowingTime + global.tf.seedPrototypes[seedTypeName].basicGrowingTime) / newEfficiency)
+        efficiency = newEfficiency
       }
       fieldObj.entity.get_inventory(1).remove{name = seedInInv.name, count = 1}
-      placeSeedIntoList(entInfo)
+      insertSeed(entInfo, nextUpdate)
     end
   end
   -- HARVESTING --
