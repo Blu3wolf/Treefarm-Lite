@@ -45,25 +45,26 @@ script.on_event(defines.events.on_player_created, function(event)
   end
 end)
 
+script.on_load(function()
+	for _, plantTypes in pairs(global.tf.seedPrototypes) do
+		if plantTypes.efficiency.other == 0 then
+			plantTypes.efficiency.other = 0.01
+		end
+	end
+	if seedTypeLookUpTable ~= nil then
+		seedTypeLookUpTable = {}
+	end
+	populateSeedTypeLookUpTable()
+end)
+
 script.on_event(defines.events.on_tick, function(event)
 	local loaded = false
 	if loaded ~= true then
-		for _, plantTypes in pairs(global.tf.seedPrototypes) do
-			if plantTypes.efficiency.other == 0 then
-				plantTypes.efficiency.other = 0.01
-			end
-		end
-
 		for seedTypeName, seedPrototype in pairs (global.tf.seedPrototypes) do
 			if game.item_prototypes[seedPrototype.states[1]] == nil then
 				global.tf.seedPrototypes[seedTypeName] = nil
 			end
 		end
-
-		if seedTypeLookUpTable ~= nil then
-			seedTypeLookUpTable = {}
-		end
-		populateSeedTypeLookUpTable()
 		loaded = true
 	end
 end)
