@@ -55,7 +55,7 @@ script.on_load(function()
 		seedTypeLookUpTable = {}
 	end
 	populateSeedTypeLookUpTable()
-end
+end)
 
 script.on_event(defines.events.on_tick, function(event)
 	local loaded = false
