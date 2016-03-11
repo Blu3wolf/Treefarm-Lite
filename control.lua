@@ -11,36 +11,6 @@ function populateSeedTypeLookUpTable()
   end
 end
 
---[[ 	treeTable = global.tf.treesToGrow[event.tick]
-		seedTable = 
-		{
-			entity = event.created_entity
-			state = 1
-			efficiency = newEfficiency
-		}
-		
-		example treeTable
-		
-		treeTable = 
-		{
-			{
-				entity = event.created_entity, 
-				state = 1,
-				efficiency = 0.98
-			},
-			{
-				entity = event.created_entity, 
-				state = 1,
-				efficiency = 0.98
-			},
-			{
-				entity = event.created_entity, 
-				state = 1,
-				efficiency = 0.98
-			}
-		}
---]]
-
 script.on_init(function()
 
   if global.tf == nil then
@@ -292,34 +262,6 @@ script.on_event(defines.events.on_tick, function(event)
       table.remove(global.tf.fieldList, 1)
     end
   end
-
---[[
-  while ((global.tf.growing[1] ~= nil) and (event.tick >= global.tf.growing[1].nextUpdate)) do
-    local removedEntity = table.remove(global.tf.growing, 1)
-    local seedTypeName
-    local newState
-    if removedEntity.entity.valid then
-      seedTypeName = seedTypeLookUpTable[removedEntity.entity.name]
-      newState = removedEntity.state + 1
-      if newState <= #global.tf.seedPrototypes[seedTypeName].states then
-        local tmpPos = removedEntity.entity.position  --]]
---		local newEnt = game.get_surface("nauvis").create_entity{name = global.tf.seedPrototypes[seedTypeLookUpTable[removedEntity.entity.name]].states[newState], position = tmpPos}
---[[	removedEntity.entity.destroy()
-        local deltaTime = math.ceil((math.random() * global.tf.seedPrototypes[seedTypeName].randomGrowingTime + global.tf.seedPrototypes[seedTypeName].basicGrowingTime) / removedEntity.efficiency)
-        local updatedEntry =
-        {
-          entity = newEnt,
-          state = newState,
-          efficiency = removedEntity.efficiency,
-        }
-		local nextUpdate = event.tick + deltaTime
-        insertSeed(updatedEntry, nextUpdate)
-      elseif (isInMk2Range(removedEntity.entity.position)) then
-        removedEntity.entity.order_deconstruction(game.forces.player)
-      end
-    end
-  end 
---]]
 end)
 
 function insertSeed(seedTable, nextGrowthTick)
