@@ -276,7 +276,7 @@ end)
 
 script.on_event(defines.events.on_tick, function(event)
 	if global.tf.treesToGrow[event.tick] ~= nil then
-		growTrees(global.tf.treesToGrow[event.tick])
+		growTrees(global.tf.treesToGrow, event.tick)
 		global.tf.treesToGrow[event.tick] = nil
 	end
 
@@ -329,11 +329,11 @@ function insertSeed(seedTable, nextGrowthTick)
 	table.insert(global.tf.treesToGrow[nextGrowthTick], seedTable)
 end
 
-function growTrees(treesToGrow)
-	for i, seedTable in pairs(treesToGrow) do
+function growTrees(treesToGrow, cur_tick)
+	for i, seedTable in pairs(treesToGrow[cur_tick]) do
 		local seedTypeName
 		local newState
-		local oldPlant = treesToGrow[i]
+		local oldPlant = treesToGrow[cur_tick][i]
 		if oldPlant.entity.valid then
 			seedTypeName = seedTypeLookUpTable[oldPlant.entity.name]
 			newState = oldPlant.state + 1
@@ -348,7 +348,7 @@ function growTrees(treesToGrow)
 					state = newState,
 					efficiency = oldPlant.efficiency,
 				}
-				local nextUpdate = event.tick + deltaTime
+				local nextUpdate = cur_tick + deltaTime
 				insertSeed(updatedEntry, nextUpdate)
 			elseif (isInMk2Range(removedEntity.entity.position)) then
 				oldPlant.entity.order_deconstruction(game.forces.player)
@@ -401,8 +401,8 @@ function defineStandardSeedPrototypes()
 
       ["other"] = 0.01
     },
-    basicGrowingTime = 180, -- add two zeros
-    randomGrowingTime = 90, -- add two zeros
+    basicGrowingTime = 18000, 
+    randomGrowingTime = 9000, 
     fertilizerBoost = 1.00
   }
 
