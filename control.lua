@@ -293,7 +293,8 @@ script.on_event(defines.events.on_tick, function(event)
     end
   end
 
-  --[[while ((global.tf.growing[1] ~= nil) and (event.tick >= global.tf.growing[1].nextUpdate)) do
+--[[
+  while ((global.tf.growing[1] ~= nil) and (event.tick >= global.tf.growing[1].nextUpdate)) do
     local removedEntity = table.remove(global.tf.growing, 1)
     local seedTypeName
     local newState
@@ -302,8 +303,8 @@ script.on_event(defines.events.on_tick, function(event)
       newState = removedEntity.state + 1
       if newState <= #global.tf.seedPrototypes[seedTypeName].states then
         local tmpPos = removedEntity.entity.position  --]]
-	--	local newEnt = game.get_surface("nauvis").create_entity{name = global.tf.seedPrototypes[seedTypeLookUpTable[removedEntity.entity.name]].states[newState], position = tmpPos}
-	--[[	removedEntity.entity.destroy()
+--		local newEnt = game.get_surface("nauvis").create_entity{name = global.tf.seedPrototypes[seedTypeLookUpTable[removedEntity.entity.name]].states[newState], position = tmpPos}
+--[[	removedEntity.entity.destroy()
         local deltaTime = math.ceil((math.random() * global.tf.seedPrototypes[seedTypeName].randomGrowingTime + global.tf.seedPrototypes[seedTypeName].basicGrowingTime) / removedEntity.efficiency)
         local updatedEntry =
         {
@@ -317,30 +318,44 @@ script.on_event(defines.events.on_tick, function(event)
         removedEntity.entity.order_deconstruction(game.forces.player)
       end
     end
-  end --]]
+  end 
+--]]
 end)
 
+function insertSeed(seedTable, nextGrowthTick)
+	if global.tf.treesToGrow[nextGrowthTick] == nil then
+		global.tf.treesToGrow[nextGrowthTick] = {}
+	end
+	table.insert(global.tf.treesToGrow[nextGrowthTick], seedTable)
+end
 
-function growTrees(treeTable)
-	if treeTable[1] ~= nil then
-		for i, seedTable in pairs(treeTable) do
-			treeTable[i].state = treeTable[i].state + 1
-			if treeTable[i].state <= #global.tf.seedPrototypes[seedTypeLookUpTable[treeTable[i].entity.name]].states then
-				local tmpPos = treeTable[i].entity.position
-				local newEnt = game.get_surface("nauvis").create_entity{name = global.tf.seedPrototypes[seedTypeLookUpTable[treeTable[i].entity.name]].states[treeTable[i].state], position = tmpPos}
-				treeTable[i].entity.destroy()
-				treeTable[i].entity = newEnt
-				local deltaTime = math.ceil((math.random() * global.tf.seedPrototypes[seedTypeName].randomGrowingTime + global.tf.seedPrototypes[seedTypeName].basicGrowingTime) / removedEntity.efficiency)
-				local nextGrowthTick = event.tick + deltaTime
-				insertSeed(seedTable, nextGrowthTick)
-			elseif (isInMk2Range(treeTable[i].entity.position)) then
-				treeTable[i].entity.order_deconstruction(game.forces.player)
+function growTrees(treesToGrow)
+	for i, seedTable in pairs(treesToGrow) do
+		local seedTypeName
+		local newState
+		local oldPlant = treesToGrow[i]
+		if oldPlant.entity.valid then
+			seedTypeName = seedTypeLookUpTable[oldPlant.entity.name]
+			newState = oldPlant.state + 1
+			if newState <= #global.tf.seedPrototypes[seedTypeName].states then
+				local tmpPos = oldPlant.entity.position
+				local newEnt = game.get_surface("nauvis").create_entity{name = global.tf.seedPrototypes[seedTypeLookUpTable[oldPlant.entity.name]].states[newState], position = tmpPos}
+				oldPlant.entity.destroy()
+				local deltaTime = math.ceil((math.random() * global.tf.seedPrototypes[seedTypeName].randomGrowingTime + global.tf.seedPrototypes[seedTypeName].basicGrowingTime) / oldPlant.efficiency)
+				local updatedEntry =
+				{
+					entity = newEnt,
+					state = newState,
+					efficiency = oldPlant.efficiency,
+				}
+				local nextUpdate = event.tick + deltaTime
+				insertSeed(updatedEntry, nextUpdate)
+			elseif (isInMk2Range(removedEntity.entity.position)) then
+				oldPlant.entity.order_deconstruction(game.forces.player)
 			end
 		end
 	end
 end
-
-
 
 function canPlaceField(field)
   local fPosX, fPosY = field.position.x, field.position.y
@@ -461,16 +476,6 @@ function placeSeedIntoList(entInfo)
   end
 end
 --]]
-
-
-function insertSeed(seedTable, nextGrowthTick)
-	if global.tf.treesToGrow[nextGrowthTick] == nil then
-		global.tf.treesToGrow[nextGrowthTick] = {}
-	end
-	
-	table.insert(global.tf.treesToGrow[nextGrowthTick], seedTable)
-end
-
 
 
 function isInMk2Range(plantPos)
