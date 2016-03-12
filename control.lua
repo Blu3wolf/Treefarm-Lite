@@ -12,32 +12,30 @@ function populateSeedTypeLookUpTable()
 end
 
 script.on_init(function()
-
-  if global.tf == nil then
-    global.tf = {}
-    global.tf.fieldList = {}
-    global.tf.seedPrototypes = {}
-	global.tf.treesToGrow = {}
-    defineStandardSeedPrototypes()
-    populateSeedTypeLookUpTable()
-    --global.tf.growing = {}
-    global.tf.playersData = {}
-    for pIndex, player in ipairs(game.players) do
-      if global.tf.playersData[pIndex] == nil then
-        global.tf.playersData[pIndex] = {}
-        global.tf.playersData[pIndex].guiOpened = false
-        global.tf.playersData[pIndex].overlayStack = {}
-      end
-    end
-  end
+	if global.tf == nil then
+		global.tf = {}
+		global.tf.fieldList = {}
+		global.tf.seedPrototypes = {}
+		global.tf.treesToGrow = {}
+		defineStandardSeedPrototypes()
+		populateSeedTypeLookUpTable()
+		global.tf.playersData = {}
+		for pIndex, player in ipairs(game.players) do
+			if global.tf.playersData[pIndex] == nil then
+				global.tf.playersData[pIndex] = {}
+				global.tf.playersData[pIndex].guiOpened = false
+				global.tf.playersData[pIndex].overlayStack = {}
+			end
+		end
+	end
 end)
 
-script.on_event(defines.events.on_player_created, function(event)
-  if global.tf.playersData[event.player_index] == nil then
-    global.tf.playersData[event.player_index] = {}
-    global.tf.playersData[event.player_index].guiOpened = false
-    global.tf.playersData[event.player_index].overlayStack = {}
-  end
+script.on_configuration_changed(function()
+	for seedTypeName, seedPrototype in pairs (global.tf.seedPrototypes) do
+		if game.item_prototypes[seedPrototype.states[1]] == nil then
+			global.tf.seedPrototypes[seedTypeName] = nil
+		end
+	end
 end)
 
 script.on_load(function()
@@ -50,6 +48,14 @@ script.on_load(function()
 		seedTypeLookUpTable = {}
 	end
 	populateSeedTypeLookUpTable()
+end)
+
+script.on_event(defines.events.on_player_created, function(event)
+  if global.tf.playersData[event.player_index] == nil then
+    global.tf.playersData[event.player_index] = {}
+    global.tf.playersData[event.player_index].guiOpened = false
+    global.tf.playersData[event.player_index].overlayStack = {}
+  end
 end)
 
 script.on_event(defines.events.on_gui_click, function(event)
@@ -99,8 +105,6 @@ script.on_event(defines.events.on_gui_click, function(event)
 
 end)
 
-
-
 script.on_event(defines.events.on_put_item, function(event)
   for playerIndex,player in pairs(game.players) do
     if (player ~= nil) and (player.selected ~= nil) then
@@ -115,8 +119,6 @@ script.on_event(defines.events.on_put_item, function(event)
     end
   end
 end)
-
-
 
 script.on_event(defines.events.on_built_entity, function(event)
   local player = game.players[event.player_index]
@@ -232,19 +234,6 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
 end)
 
 script.on_event(defines.events.on_tick, function(event)
--- this one is effectively an on_load event
-	local loaded = false
-	if loaded ~= true then
-		for seedTypeName, seedPrototype in pairs (global.tf.seedPrototypes) do
-			if game.item_prototypes[seedPrototype.states[1]] == nil then
-				global.tf.seedPrototypes[seedTypeName] = nil
-			end
-		end
-		loaded = true
-	end
-end)
-
-script.on_event(defines.events.on_tick, function(event)
 	if global.tf.treesToGrow[event.tick] ~= nil then
 		growTrees(global.tf.treesToGrow, event.tick)
 		global.tf.treesToGrow[event.tick] = nil
@@ -292,7 +281,7 @@ function growTrees(treesToGrow, cur_tick)
 				}
 				local nextUpdate = cur_tick + deltaTime
 				insertSeed(updatedEntry, nextUpdate)
-			elseif (isInMk2Range(removedEntity.entity.position)) then
+			elseif (isInMk2Range(oldPlant.entity.position)) then
 				oldPlant.entity.order_deconstruction(game.forces.player)
 			end
 		end
@@ -396,30 +385,6 @@ function calcEfficiency(entity, fertilizerApplied)
   end
 end
 
-
---[[
-function placeSeedIntoList(entInfo)
-  if #global.tf.growing > 1 then
-    for i = #global.tf.growing, 1, -1 do
-      if global.tf.growing[i].nextUpdate <= entInfo.nextUpdate then
-        table.insert(global.tf.growing, i + 1, entInfo)
-        return
-      end
-    end
-    table.insert(global.tf.growing, 1, entInfo)
-  elseif #global.tf.growing == 1 then
-    if global.tf.growing[1].nextUpdate > entInfo.nextUpdate then
-      table.insert(global.tf.growing, 1, entInfo)
-    else
-      table.insert(global.tf.growing, entInfo)
-    end
-  else
-    table.insert(global.tf.growing, entInfo)
-  end
-end
---]]
-
-
 function isInMk2Range(plantPos)
   for _, field in ipairs(global.tf.fieldList) do
     if (field.entity.valid) and (field.entity.name == "tf-fieldmk2") and (field.active == true) then
@@ -436,8 +401,6 @@ function isInMk2Range(plantPos)
   end
   return false
 end
-
-
 
 function fieldMaintainer(tick)
   -- SEEDPLANTING --
