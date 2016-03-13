@@ -30,7 +30,7 @@ script.on_init(function()
 	end
 end)
 
-script.on_configuration_changed(function()
+script.on_configuration_changed(function(data)
 	for seedTypeName, seedPrototype in pairs (global.tf.seedPrototypes) do
 		if game.item_prototypes[seedPrototype.states[1]] == nil then
 			global.tf.seedPrototypes[seedTypeName] = nil
