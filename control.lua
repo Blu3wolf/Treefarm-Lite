@@ -267,7 +267,7 @@ function oldToNew()
 			state = entInfo.state,
 			efficiency = entInfo.efficiency
 		}
-		table.insert(global.tf.treesToGrow[nextGrowthTick], seedTable)
+		insertSeed(seedTable, nextGrowthTick)
 	end
 	global.tf.growing = nil
 end
