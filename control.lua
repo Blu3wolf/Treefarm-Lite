@@ -30,7 +30,7 @@ script.on_init(function()
 	end
 end)
 
-script.on_configuration_changed(function()
+script.on_configuration_changed(function(data)
 	for seedTypeName, seedPrototype in pairs (global.tf.seedPrototypes) do
 		if game.item_prototypes[seedPrototype.states[1]] == nil then
 			global.tf.seedPrototypes[seedTypeName] = nil
@@ -48,6 +48,10 @@ script.on_load(function()
 		seedTypeLookUpTable = {}
 	end
 	populateSeedTypeLookUpTable()
+	-- this checks for old pre 0.3.X method and updates to the new version
+	if global.tf.growing then 
+		oldToNew()
+	end
 end)
 
 script.on_event(defines.events.on_player_created, function(event)
@@ -252,6 +256,21 @@ script.on_event(defines.events.on_tick, function(event)
     end
   end
 end)
+
+function oldToNew()
+	global.tf.treesToGrow = {}
+	for i, entInfo in pairs(global.tf.growing) do
+		local nextGrowthTick = entInfo.nextUpdate
+		local seedTable = 
+		{
+			entity = entInfo.entity,
+			state = entInfo.state,
+			efficiency = entInfo.efficiency
+		}
+		insertSeed(seedTable, nextGrowthTick)
+	end
+	global.tf.growing = nil
+end
 
 function insertSeed(seedTable, nextGrowthTick)
 	if global.tf.treesToGrow[nextGrowthTick] == nil then
