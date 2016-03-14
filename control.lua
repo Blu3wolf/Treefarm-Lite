@@ -259,15 +259,15 @@ end)
 
 function oldToNew()
 	global.tf.treesToGrow = {}
-	for i, v in pairs(global.tf.growing) do
-		v["nextUpdate"] = nextGrowthTick
-		seedTable = 
+	for i, entInfo in pairs(global.tf.growing) do
+		local nextGrowthTick = entInfo.nextUpdate
+		local seedTable = 
 		{
-			entity = v["entity"],
-			state = v["state"],
-			efficiency = v["efficiency"]
+			entity = entInfo.entity,
+			state = entInfo.state,
+			efficiency = entInfo.efficiency
 		}
-		insertSeed(seedTable, nextGrowthTick)
+		table.insert(global.tf.treesToGrow[nextGrowthTick], seedTable)
 	end
 	global.tf.growing = nil
 end
