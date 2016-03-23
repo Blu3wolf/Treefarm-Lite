@@ -219,7 +219,7 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
     	{
     		name = "tf-fieldmk2",
                 position = event.created_entity.position,
-                --force = player.force
+                force = event.created_entity.force
         }
     local entInfo =
     {
