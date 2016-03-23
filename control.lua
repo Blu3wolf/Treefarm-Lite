@@ -182,7 +182,7 @@ end)
 
 
 script.on_event(defines.events.on_robot_built_entity, function(event)
-  local player = game.players[event.player_index]
+  --local player = game.players[event.player_index]
   if event.created_entity.type == "tree" then
     local currentSeedTypeName = seedTypeLookUpTable[event.created_entity.name]
     if currentSeedTypeName ~= nil then
@@ -215,9 +215,12 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
       return
     end
   elseif event.created_entity.name == "tf-fieldmk2Overlay" then
-    local ent = game.get_surface("nauvis").create_entity{name = "tf-fieldmk2",
-                    position = event.created_entity.position,
-                    force = player.force}
+    local ent = game.get_surface("nauvis").create_entity
+    	{
+    		name = "tf-fieldmk2",
+                position = event.created_entity.position,
+                --force = player.force
+        }
     local entInfo =
     {
       entity = ent,
