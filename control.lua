@@ -156,9 +156,9 @@ script.on_event(defines.events.on_built_entity, function(event)
       {
         entity = event.created_entity,
         fertAmount = 0,
-        lastSeedPos = {x = 2, y = 0}, -- 2;1
-        nextUpdate = event.tick + 60
+        lastSeedPos = {x = 2, y = 0}
       }
+	  local nextUpdate = event.tick + 60
       insertField(entInfo, nextUpdate)
       return
     end
@@ -288,16 +288,14 @@ function insertSeed(seedTable, nextGrowthTick)
 	table.insert(global.tf.treesToGrow[nextGrowthTick], seedTable)
 end
 
-function insertField(fieldTable)
-	local nextUpdate = fieldTable.nextUpdate
+function insertField(fieldTable, nextUpdate)
 	if global.tf.fieldsToMaintain[nextUpdate] == nil then
 		global.tf.fieldsToMaintain[nextUpdate] = {}
 	end
 	table.insert(global.tf.fieldsToMaintain[nextUpdate], fieldTable)
 end
 
-function insertFieldmk2(fieldTable)
-	local nextUpdate = fieldTable.nextUpdate
+function insertFieldmk2(fieldTable, nextUpdate)
 	if global.tf.fieldmk2sToMaintain[nextUpdate] == nil then
 		global.tf.fieldmk2sToMaintain[nextUpdate] = {}
 	end
@@ -454,27 +452,24 @@ end
 			entity = event.created_entity,
 			fertAmount = 0,
 			lastSeedPos = {x = 2, y = 0}, -- 2;1
-			nextUpdate = event.tick + 60
 		},
 		treefarmEnt2 = 
 		{
 			entity = event.created_entity,
 			fertAmount = 0,
 			lastSeedPos = {x = 2, y = 0}, -- 2;1
-			nextUpdate = event.tick + 60
 		},
 		treefarmEnt3 = 
 		{
 			entity = event.created_entity,
 			fertAmount = 0,
 			lastSeedPos = {x = 2, y = 0}, -- 2;1
-			nextUpdate = event.tick + 60
 		}
 	}
 --]]
 
 function fieldMaintainer(tick)
-	for i, fieldObj in pairs(global.tf.fieldsToMaintain[tick]) do
+	for _, fieldObj in pairs(global.tf.fieldsToMaintain[tick]) do
 		local fieldSur = fieldObj.entity.surface.name
 		local fieldPos = fieldObj.entity.position
 		-- seedplanting --
@@ -586,7 +581,8 @@ function fieldMaintainer(tick)
 				end
 			end
 		end
-		fieldObj.nextUpdate = tick + 60
+		local nextUpdate = tick + 60
+		insertField(fieldObj, nextUpdate)
 	end
 end
 
@@ -674,7 +670,8 @@ function fieldmk2Maintainer(tick)
 			end
 		end
 	-- harvesting--
-	fieldObj.nextUpdate = tick + 60
+	local nextUpdate = tick + 60
+	insertFieldmk2(fieldObj, nextUpdate)
     end
 end
 
