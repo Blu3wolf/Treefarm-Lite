@@ -159,7 +159,7 @@ script.on_event(defines.events.on_built_entity, function(event)
         lastSeedPos = {x = 2, y = 0}, -- 2;1
         nextUpdate = event.tick + 60
       }
-      table.insert(global.tf.fieldsToMaintain[event.tick], entInfo)
+      insertField(entInfo, nextUpdate)
       return
     end
   elseif event.created_entity.name == "tf-fieldmk2Overlay" then
@@ -176,7 +176,7 @@ script.on_event(defines.events.on_built_entity, function(event)
       toBeHarvested = {},
       nextUpdate = event.tick + 60
     }
-    table.insert(global.tf.fieldmk2sToMaintain[event.tick], entInfo)
+	insertFieldmk2(entInfo, nextUpdate)
     showFieldmk2GUI(#global.tf.fieldmk2sToMaintain, event.player_index)
     global.tf.playersData[event.player_index].guiOpened = entInfo.entity
     event.created_entity.destroy()
@@ -215,7 +215,7 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
         lastSeedPos = {x = 2, y = 0}, -- 2;1
         nextUpdate = event.tick + 60
       }
-      table.insert(global.tf.fieldList, entInfo)
+	  insertField(entInfo, nextUpdate)
       return
     end
   elseif event.created_entity.name == "tf-fieldmk2Overlay" then
@@ -235,7 +235,7 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
       toBeHarvested = {},
       nextUpdate = event.tick + 60
     }
-    table.insert(global.tf.fieldList, entInfo)
+	insertFieldmk2(entInfo)
 
     --global.treefarm.tmpData.fieldmk2Index = #global.treefarm.fieldmk2
     --showFieldmk2GUI(#global.treefarm.fieldmk2, event.playerindex)
@@ -286,6 +286,22 @@ function insertSeed(seedTable, nextGrowthTick)
 		global.tf.treesToGrow[nextGrowthTick] = {}
 	end
 	table.insert(global.tf.treesToGrow[nextGrowthTick], seedTable)
+end
+
+function insertField(fieldTable)
+	local nextUpdate = fieldTable.nextUpdate
+	if global.tf.fieldsToMaintain[nextUpdate] == nil then
+		global.tf.fieldsToMaintain[nextUpdate] = {}
+	end
+	table.insert(global.tf.fieldsToMaintain[nextUpdate], fieldTable)
+end
+
+function insertFieldmk2(fieldTable)
+	local nextUpdate = fieldTable.nextUpdate
+	if global.tf.fieldmk2sToMaintain[nextUpdate] == nil then
+		global.tf.fieldmk2sToMaintain[nextUpdate] = {}
+	end
+	table.insert(global.tf.fieldmk2sToMaintain[nextUpdate], fieldTable)
 end
 
 function growTrees(treesToGrow, cur_tick)
@@ -459,7 +475,7 @@ end
 
 function fieldMaintainer(tick)
 	for i, fieldObj in pairs(global.tf.fieldsToMaintain[tick]) do
-		local fieldSur = fieldObj.entity.surface
+		local fieldSur = fieldObj.entity.surface.name
 		local fieldPos = fieldObj.entity.position
 		-- seedplanting --
 		local seedInInv = {}
@@ -591,7 +607,7 @@ function fieldmk2Maintainer(tick)
 		end
 		local seedPos = false
 		local fieldPos = fieldObj.entity.position
-		local fieldSur = fieldObj.entity.surface
+		local fieldSur = fieldObj.entity.surface.name
 		if seedInInv.name ~= nil then
 			local placed = false
 			local lastPos = fieldObj.lastSeedPos
