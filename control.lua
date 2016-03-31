@@ -444,30 +444,6 @@ function isInMk2Range(plantPos)
   return false
 end
 
---[[
-	global.tf.fieldsToMaintain[tick] = 
-	{
-		treefarmEnt =
-		{
-			entity = event.created_entity,
-			fertAmount = 0,
-			lastSeedPos = {x = 2, y = 0}, -- 2;1
-		},
-		treefarmEnt2 = 
-		{
-			entity = event.created_entity,
-			fertAmount = 0,
-			lastSeedPos = {x = 2, y = 0}, -- 2;1
-		},
-		treefarmEnt3 = 
-		{
-			entity = event.created_entity,
-			fertAmount = 0,
-			lastSeedPos = {x = 2, y = 0}, -- 2;1
-		}
-	}
---]]
-
 function fieldMaintainer(tick)
 	for _, fieldObj in pairs(global.tf.fieldsToMaintain[tick]) do
 		local fieldSur = fieldObj.entity.surface.name
