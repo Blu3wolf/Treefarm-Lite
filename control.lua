@@ -14,6 +14,7 @@ end
 script.on_init(function()
 	if global.tf == nil then
 		global.tf = {}
+		global.tf.fieldList = {}
 		global.tf.fieldsToMaintain = {}
 		global.tf.fieldmk2sToMaintain = {}
 		global.tf.seedPrototypes = {}
@@ -37,6 +38,14 @@ script.on_configuration_changed(function(data)
 			global.tf.seedPrototypes[seedTypeName] = nil
 		end
 	end
+	
+	if data.mod_changes ~= nil and tonumber(string.sub(data.mod_changes["Treefarm-Lite"].old_version, 3, 5)) < 3 then
+		v3Update()
+	end
+	
+	if data.mod_changes ~=nil and tonumber(string.sub(data.mod_changes["Treefarm-Lite"].old_version, 3, 5)) < 3.4 then
+		v34Update()
+	end
 end)
 
 script.on_load(function()
@@ -49,13 +58,6 @@ script.on_load(function()
 		seedTypeLookUpTable = {}
 	end
 	populateSeedTypeLookUpTable()
-	-- this checks for old pre 0.3.X method and updates to the new version
-	if global.tf.growing then 
-		oldToNew()
-	end
-	if global.tf.fieldList then
-		oldToNew()
-	end
 end)
 
 script.on_event(defines.events.on_player_created, function(event)
@@ -160,6 +162,7 @@ script.on_event(defines.events.on_built_entity, function(event)
       }
 	  local nextUpdate = event.tick + 60
       insertField(entInfo, nextUpdate)
+	  table.insert(global.tf.fieldList, entInfo)
       return
     end
   elseif event.created_entity.name == "tf-fieldmk2Overlay" then
@@ -173,10 +176,11 @@ script.on_event(defines.events.on_built_entity, function(event)
       areaRadius = 9,
       fertAmount = 0,
       lastSeedPos = {x = -9, y = -9},
-      toBeHarvested = {},
-      nextUpdate = event.tick + 60
+      toBeHarvested = {}
     }
+	local nextUpdate = event.tick + 60
 	insertFieldmk2(entInfo, nextUpdate)
+	table.insert(global.tf.fieldList, entInfo)
     showFieldmk2GUI(#global.tf.fieldmk2sToMaintain, event.player_index)
     global.tf.playersData[event.player_index].guiOpened = entInfo.entity
     event.created_entity.destroy()
@@ -212,9 +216,9 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
       {
         entity = event.created_entity,
         fertAmount = 0,
-        lastSeedPos = {x = 2, y = 0}, -- 2;1
-        nextUpdate = event.tick + 60
+        lastSeedPos = {x = 2, y = 0}
       }
+	  local nextUpdate = event.tick + 60
 	  insertField(entInfo, nextUpdate)
       return
     end
@@ -232,10 +236,10 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
       areaRadius = 9,
       fertAmount = 0,
       lastSeedPos = {x = -9, y = -9},
-      toBeHarvested = {},
-      nextUpdate = event.tick + 60
+      toBeHarvested = {}
     }
-	insertFieldmk2(entInfo)
+	local nextUpdate = event.tick + 60
+	insertFieldmk2(entInfo, nextUpdate)
 
     --global.treefarm.tmpData.fieldmk2Index = #global.treefarm.fieldmk2
     --showFieldmk2GUI(#global.treefarm.fieldmk2, event.playerindex)
@@ -261,7 +265,7 @@ script.on_event(defines.events.on_tick, function(event)
 	end
 end)
 
-function oldToNew()
+function v3Update()
 	if global.tf.treesToGrow == nil then
 		global.tf.treesToGrow = {}
 		for i, entInfo in pairs(global.tf.growing) do
@@ -276,6 +280,9 @@ function oldToNew()
 		end
 		global.tf.growing = nil
 	end
+end
+
+function v34Update()
 	if global.tf.fieldList then
 		global.tf.fieldList = nil
 	end
@@ -652,31 +659,29 @@ function fieldmk2Maintainer(tick)
 end
 
 function showFieldmk2GUI(index, playerIndex)
-  local player = game.players[playerIndex]
-  if player.gui.center.fieldmk2Root == nil then
-    local rootFrame = player.gui.center.add{type = "frame", name = "fieldmk2Root", caption = game.entity_prototypes["tf-fieldmk2"].localised_name, direction = "vertical"}
-      local rootTable = rootFrame.add{type ="table", name = "fieldmk2Table", colspan = 4}
-        rootTable.add{type = "label", name = "colLabel1", caption = {"thisFieldIs"}}
-        local status = "active / not active"
-        if global.tf.fieldList[index].active == true then
-          status = {"active"}
-        else
-          status = {"notActive"}
-        end
-        rootTable.add{type = "label", name = "colLabel2", caption = status}
-        rootTable.add{type = "button", name = "toggleActiveBut", caption = {"toggleButtonCaption"}, style = "tf_smallerButtonFont"}
-        rootTable.add{type = "label", name = "colLabel4", caption = ""}
-
-        rootTable.add{type = "label", name = "areaLabel1", caption = {"usedArea"}}
-        rootTable.add{type = "label", name = "areaLabel2", caption = global.tf.fieldList[index].areaRadius}
-        rootTable.add{type = "button", name = "incAreaBut", caption = "+", style = "tf_smallerButtonFont"}
-        rootTable.add{type = "button", name = "decAreaBut", caption = "-", style = "tf_smallerButtonFont"}
-      rootFrame.add{type = "button", name = "okButton", caption = {"okButtonCaption"}, style = "tf_smallerButtonFont"}
-
-    if (global.tf.playersData[playerIndex].overlayStack == nil) or (#global.tf.playersData[playerIndex].overlayStack == 0) then
-      createOverlay(playerIndex, global.tf.fieldList[index])
-    end
-  end
+	local player = game.players[playerIndex]
+	if player.gui.center.fieldmk2Root == nil then
+		local rootFrame = player.gui.center.add{type = "frame", name = "fieldmk2Root", caption = game.entity_prototypes["tf-fieldmk2"].localised_name, direction = "vertical"}
+		local rootTable = rootFrame.add{type ="table", name = "fieldmk2Table", colspan = 4}
+		rootTable.add{type = "label", name = "colLabel1", caption = {"thisFieldIs"}}
+		local status = "active / not active"
+		if global.tf.fieldList[index].active == true then
+			status = {"active"}
+		else
+			status = {"notActive"}
+		end
+		rootTable.add{type = "label", name = "colLabel2", caption = status}
+		rootTable.add{type = "button", name = "toggleActiveBut", caption = {"toggleButtonCaption"}, style = "tf_smallerButtonFont"}
+		rootTable.add{type = "label", name = "colLabel4", caption = ""}
+		rootTable.add{type = "label", name = "areaLabel1", caption = {"usedArea"}}
+		rootTable.add{type = "label", name = "areaLabel2", caption = global.tf.fieldList[index].areaRadius}
+		rootTable.add{type = "button", name = "incAreaBut", caption = "+", style = "tf_smallerButtonFont"}
+		rootTable.add{type = "button", name = "decAreaBut", caption = "-", style = "tf_smallerButtonFont"}
+		rootFrame.add{type = "button", name = "okButton", caption = {"okButtonCaption"}, style = "tf_smallerButtonFont"}
+		if (global.tf.playersData[playerIndex].overlayStack == nil) or (#global.tf.playersData[playerIndex].overlayStack == 0) then
+			createOverlay(playerIndex, global.tf.fieldList[index])
+		end
+	end
 end
 
 
