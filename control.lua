@@ -463,7 +463,7 @@ function fieldMaintainer(tick)
 			for i, fieldEnt in pairs(global.tf.fieldList) do
 				if fieldEnt == fieldObj then
 					table.remove(global.tf.fieldList, i)
-					return
+					break
 				end
 			end
 		else
@@ -591,7 +591,7 @@ function fieldmk2Maintainer(tick)
 			for i, fieldEnt in pairs(global.tf.fieldList) do
 				if fieldObj == fieldEnt then
 					table.remove(global.tf.fieldList, i)
-					return
+					break
 				end
 			end
 		else
