@@ -459,7 +459,14 @@ end
 
 function fieldMaintainer(tick)
 	for _, fieldObj in pairs(global.tf.fieldsToMaintain[tick]) do
-		if fieldObj.entity.valid then
+		if not fieldObj.entity.valid then
+			for i, fieldEnt in pairs(global.tf.fieldList) do
+				if fieldEnt == fieldObj then
+					table.remove(global.tf.fieldList, i)
+					return
+				end
+			end
+		else
 			local fieldSur = fieldObj.entity.surface.name
 			local fieldPos = fieldObj.entity.position
 			-- seedplanting --
@@ -573,8 +580,6 @@ function fieldMaintainer(tick)
 			end
 			local nextUpdate = tick + 60
 			insertField(fieldObj, nextUpdate)
-		else 
-			
 		end
 	end
 end
@@ -582,49 +587,43 @@ end
 function fieldmk2Maintainer(tick)
   -- SEEDPLANTING --
 	for _, fieldObj in pairs(global.tf.fieldmk2sToMaintain[tick]) do
-		local seedInInv = {}
-		for _, seedType in pairs(global.tf.seedPrototypes) do
-			local newAmount = fieldObj,entity.get_item_count(seedType.states[1])
-			if newAmount > 0 then
-				seedInInv = 
-				{
-					name = seedType.states[1],
-					amount = newAmount
-				}
-				break
-			end
-		end
-		local seedPos = false
-		local fieldPos = fieldObj.entity.position
-		local fieldSur = fieldObj.entity.surface.name
-		if seedInInv.name ~= nil then
-			local placed = false
-			local lastPos = fieldObj.lastSeedPos
-			if lastPos.x < -fieldObj.areaRadius then
-				lastPos.x = -fieldObj.areaRadius
-			elseif lastPos.x > fieldObj.areaRadius then
-				lastPos.x = fieldObj.areaRadius
-			end
-			if lastPos.y < -fieldObj.areaRadius then
-				lastPos.y = -fieldObj.areaRadius
-			elseif lastPos.y > fieldObj.areaRadius then
-				lastPos.y = fieldObj.areaRadius
-			end
-			for dx = lastPos.x, fieldObj.areaRadius do
-				for dy = -fieldObj.areaRadius, fieldObj.areaRadius do
-					if (game.get_surface(fieldSur).can_place_entity{name = "tf-germling", position = {fieldPos.x + dx - 0.5, fieldPos.y + dy - 0.5}}) then
-						seedPos = {x = fieldPos.x + dx - 0.5, y = fieldPos.y + dy - 0.5}
-						placed = true
-						fieldObj.lastSeedPos = {x = dx, y = dy}
-						break
-					end
+		if not fieldObj.entity.valid then
+			for i, fieldEnt in pairs(global.tf.fieldList) do
+				if fieldObj == fieldEnt then
+					table.remove(global.tf.fieldList, i)
+					return
 				end
-				if placed == true then
+			end
+		else
+			local seedInInv = {}
+			for _, seedType in pairs(global.tf.seedPrototypes) do
+				local newAmount = fieldObj,entity.get_item_count(seedType.states[1])
+				if newAmount > 0 then
+					seedInInv = 
+					{
+						name = seedType.states[1],
+						amount = newAmount
+					}
 					break
 				end
 			end
-			if (placed == false) and (lastPos.x ~= -fieldObj.areaRadius) then
-				for dx = -fieldObj.areaRadius, lastPos.x - 1 do
+			local seedPos = false
+			local fieldPos = fieldObj.entity.position
+			local fieldSur = fieldObj.entity.surface.name
+			if seedInInv.name ~= nil then
+				local placed = false
+				local lastPos = fieldObj.lastSeedPos
+				if lastPos.x < -fieldObj.areaRadius then
+					lastPos.x = -fieldObj.areaRadius
+				elseif lastPos.x > fieldObj.areaRadius then
+					lastPos.x = fieldObj.areaRadius
+				end
+				if lastPos.y < -fieldObj.areaRadius then
+					lastPos.y = -fieldObj.areaRadius
+				elseif lastPos.y > fieldObj.areaRadius then
+					lastPos.y = fieldObj.areaRadius
+				end
+				for dx = lastPos.x, fieldObj.areaRadius do
 					for dy = -fieldObj.areaRadius, fieldObj.areaRadius do
 						if (game.get_surface(fieldSur).can_place_entity{name = "tf-germling", position = {fieldPos.x + dx - 0.5, fieldPos.y + dy - 0.5}}) then
 							seedPos = {x = fieldPos.x + dx - 0.5, y = fieldPos.y + dy - 0.5}
@@ -637,34 +636,49 @@ function fieldmk2Maintainer(tick)
 						break
 					end
 				end
-			end
-			if seedPos ~= false then
-				local seedTypeName = seedTypeLookUpTable[seedInInv.name]
-				local newEntity = game.get_surface("nauvis").create_entity{name = seedInInv.name, position = seedPos}
-				local newFertilized = false
-				if (fieldObj.fertAmount < 0.1) and (game.item_prototypes["tf-fertilizer"] ~= nil) and (fieldObj.entity.get_inventory(1).get_item_count("tf-fertilizer") > 0) then
-					fieldObj.fertAmount = 1
-					fieldObj.entity.get_inventory(1).remove{name = "tf-fertilizer", count = 1}
+				if (placed == false) and (lastPos.x ~= -fieldObj.areaRadius) then
+					for dx = -fieldObj.areaRadius, lastPos.x - 1 do
+						for dy = -fieldObj.areaRadius, fieldObj.areaRadius do
+							if (game.get_surface(fieldSur).can_place_entity{name = "tf-germling", position = {fieldPos.x + dx - 0.5, fieldPos.y + dy - 0.5}}) then
+								seedPos = {x = fieldPos.x + dx - 0.5, y = fieldPos.y + dy - 0.5}
+								placed = true
+								fieldObj.lastSeedPos = {x = dx, y = dy}
+								break
+							end
+						end
+						if placed == true then
+							break
+						end
+					end
 				end
-				if fieldObj.fertAmount >= 0.1 then
-					fieldObj.fertAmount = fieldObj.fertAmount - 0.1
-					newFertilized = true
+				if seedPos ~= false then
+					local seedTypeName = seedTypeLookUpTable[seedInInv.name]
+					local newEntity = game.get_surface("nauvis").create_entity{name = seedInInv.name, position = seedPos}
+					local newFertilized = false
+					if (fieldObj.fertAmount < 0.1) and (game.item_prototypes["tf-fertilizer"] ~= nil) and (fieldObj.entity.get_inventory(1).get_item_count("tf-fertilizer") > 0) then
+						fieldObj.fertAmount = 1
+						fieldObj.entity.get_inventory(1).remove{name = "tf-fertilizer", count = 1}
+					end
+					if fieldObj.fertAmount >= 0.1 then
+						fieldObj.fertAmount = fieldObj.fertAmount - 0.1
+						newFertilized = true
+					end
+					local newEfficiency = calcEfficiency(newEntity, newFertilized)
+					local nextUpdate = tick + math.ceil((math.random() * global.tf.seedPrototypes[seedTypeName].randomGrowingTime + global.tf.seedPrototypes[seedTypeName].basicGrowingTime) / newEfficiency)
+					local entInfo = 
+					{
+						entity = newEntity,
+						state = 1,
+						efficiency = newEfficiency
+					}
+					fieldObj.entity.get_inventory(1).remove{name = seedInInv.name, count = 1}
+					insertSeed(entInfo, nextUpdate)
 				end
-				local newEfficiency = calcEfficiency(newEntity, newFertilized)
-				local nextUpdate = tick + math.ceil((math.random() * global.tf.seedPrototypes[seedTypeName].randomGrowingTime + global.tf.seedPrototypes[seedTypeName].basicGrowingTime) / newEfficiency)
-				local entInfo = 
-				{
-					entity = newEntity,
-					state = 1,
-					efficiency = newEfficiency
-				}
-				fieldObj.entity.get_inventory(1).remove{name = seedInInv.name, count = 1}
-				insertSeed(entInfo, nextUpdate)
 			end
+			-- harvesting--
+			local nextUpdate = tick + 60
+			insertFieldmk2(fieldObj, nextUpdate)
 		end
-	-- harvesting--
-	local nextUpdate = tick + 60
-	insertFieldmk2(fieldObj, nextUpdate)
     end
 end
 
