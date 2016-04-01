@@ -161,8 +161,8 @@ script.on_event(defines.events.on_built_entity, function(event)
         lastSeedPos = {x = 2, y = 0}
       }
 	  local nextUpdate = event.tick + 60
-      insertField(entInfo, nextUpdate)
 	  table.insert(global.tf.fieldList, entInfo)
+      insertField(entInfo, nextUpdate)
       return
     end
   elseif event.created_entity.name == "tf-fieldmk2Overlay" then
@@ -179,8 +179,8 @@ script.on_event(defines.events.on_built_entity, function(event)
       toBeHarvested = {}
     }
 	local nextUpdate = event.tick + 60
-	insertFieldmk2(entInfo, nextUpdate)
 	table.insert(global.tf.fieldList, entInfo)
+	insertFieldmk2(entInfo, nextUpdate)
     showFieldmk2GUI(#global.tf.fieldmk2sToMaintain, event.player_index)
     global.tf.playersData[event.player_index].guiOpened = entInfo.entity
     event.created_entity.destroy()
@@ -247,6 +247,12 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
     return
   end
 end)
+
+script.on_event(defines.events.on_entity_died, function(event)
+	
+end)
+
+
 
 script.on_event(defines.events.on_tick, function(event)
 	if global.tf.treesToGrow[event.tick] ~= nil then
@@ -453,54 +459,33 @@ end
 
 function fieldMaintainer(tick)
 	for _, fieldObj in pairs(global.tf.fieldsToMaintain[tick]) do
-		local fieldSur = fieldObj.entity.surface.name
-		local fieldPos = fieldObj.entity.position
-		-- seedplanting --
-		local seedInInv = {}
-		for _, seedType in pairs(global.tf.seedPrototypes) do
-			local newAmount = fieldObj.entity.get_inventory(1).get_item_count(seedType.states[1])
-			if newAmount > 0 then
-				seedInInv = 
-				{
-					name = seedType.states[1],
-					amount = newAmount
-				}
-				break
-			end
-		end
-		
-		local seedPos = false
-		if seedInInv.name ~= nil then
-			local placed = false
-			local lastPos = fieldObj.lastSeedPos
-			for dx = lastPos.x, 8 do
-				for dy = 0, 6 do
-					if (game.get_surface(fieldSur).can_place_entity{name = "tf-germling", position = {fieldPos.x + dx - 0.5, fieldPos.y + dy - 0.5}}) then
-						seedPos = 
-						{
-							x = fieldPos.x + dx - 0.5,
-							y = fieldPos.y + dy - 0.5
-						}
-						placed = true
-						fieldObj.lastSeedPos = 
-						{
-							x = dx,
-							y = dy
-						}
-						break
-					end
-				end
-				if placed == true then
+		if fieldObj.entity.valid then
+			local fieldSur = fieldObj.entity.surface.name
+			local fieldPos = fieldObj.entity.position
+			-- seedplanting --
+			local seedInInv = {}
+			for _, seedType in pairs(global.tf.seedPrototypes) do
+				local newAmount = fieldObj.entity.get_inventory(1).get_item_count(seedType.states[1])
+				if newAmount > 0 then
+					seedInInv = 
+					{
+						name = seedType.states[1],
+						amount = newAmount
+					}
 					break
 				end
 			end
-			if (placed == false) and (lastPos.x ~= 2) then
-				for dx = 2, lastPos.x - 1 do
+		
+			local seedPos = false
+			if seedInInv.name ~= nil then
+				local placed = false
+				local lastPos = fieldObj.lastSeedPos
+				for dx = lastPos.x, 8 do
 					for dy = 0, 6 do
 						if (game.get_surface(fieldSur).can_place_entity{name = "tf-germling", position = {fieldPos.x + dx - 0.5, fieldPos.y + dy - 0.5}}) then
 							seedPos = 
 							{
-								x = fieldPos.x + dx - 0.5, 
+								x = fieldPos.x + dx - 0.5,
 								y = fieldPos.y + dy - 0.5
 							}
 							placed = true
@@ -516,56 +501,81 @@ function fieldMaintainer(tick)
 						break
 					end
 				end
-			end
-			if seedPos ~= false then
-				local seedTypeName = seedTypeLookUpTable[seedInInv.name]
-				local newPlant = game.get_surface(fieldSur).create_entity{name = seedInInv.name, position = seedPos}
-				local newFertilized = false
-				
-				if (fieldObj.fertAmount < 0.1) and (game.item_prototypes["tf-fertilizer"]) ~= nil and (fieldObj.entity.get_inventory(2).get_item_count("tf-fertilizer") > 0) then
-					fieldObj.fertAmount = 1
-					fieldObj.entity.get_inventory(2).remove{name = "tf-fertilizer", count = 1}
+				if (placed == false) and (lastPos.x ~= 2) then
+					for dx = 2, lastPos.x - 1 do
+						for dy = 0, 6 do
+							if (game.get_surface(fieldSur).can_place_entity{name = "tf-germling", position = {fieldPos.x + dx - 0.5, fieldPos.y + dy - 0.5}}) then
+								seedPos = 
+								{
+									x = fieldPos.x + dx - 0.5, 
+									y = fieldPos.y + dy - 0.5
+								}
+								placed = true
+								fieldObj.lastSeedPos = 
+								{
+									x = dx,
+									y = dy
+								}
+								break
+							end
+						end
+						if placed == true then
+							break
+						end
+					end
 				end
-				
-				if fieldObj.fertAmount >= 0.1 then
-					fieldObj.fertAmount = fieldObj.fertAmount - 0.1
-					newFertilized = true
-				end
-				
-				local newEfficiency = calcEfficiency(newPlant, newFertilized)
-				local nextUpdate = tick + math.ceil((math.random() * global.tf.seedPrototypes[seedTypeName].randomGrowingTime + global.tf.seedPrototypes[seedTypeName].basicGrowingTime) / newEfficiency)
-				local entInfo = 
-				{
-					entity = newPlant,
-					state = 1,
-					efficiency = newEfficiency
-				}
-				fieldObj.entity.get_inventory(1).remove{name = seedInInv.name, count = 1}
-				insertSeed(entInfo, nextUpdate)
-			end
-		end
-		
-		--harvesting--
-		
-		local grownEntities = game.get_surface(fieldSur).find_entities_filtered{area = {fieldPos, {fieldPos.x + 9, fieldPos.y + 8}}, type = "tree"}
-		for _, entity in ipairs(grownEntities) do
-			for _, seedType in pairs(global.tf.seedPrototypes) do
-				if entity.name == seedType.states[#seedType.states] then
-					local output = 
+				if seedPos ~= false then
+					local seedTypeName = seedTypeLookUpTable[seedInInv.name]
+					local newPlant = game.get_surface(fieldSur).create_entity{name = seedInInv.name, position = seedPos}
+					local newFertilized = false
+					
+					if (fieldObj.fertAmount < 0.1) and (game.item_prototypes["tf-fertilizer"]) ~= nil and (fieldObj.entity.get_inventory(2).get_item_count("tf-fertilizer") > 0) then
+						fieldObj.fertAmount = 1
+						fieldObj.entity.get_inventory(2).remove{name = "tf-fertilizer", count = 1}
+					end
+					
+					if fieldObj.fertAmount >= 0.1 then
+						fieldObj.fertAmount = fieldObj.fertAmount - 0.1
+						newFertilized = true
+					end
+					
+					local newEfficiency = calcEfficiency(newPlant, newFertilized)
+					local nextUpdate = tick + math.ceil((math.random() * global.tf.seedPrototypes[seedTypeName].randomGrowingTime + global.tf.seedPrototypes[seedTypeName].basicGrowingTime) / newEfficiency)
+					local entInfo = 
 					{
-						name = seedType.output[1],
-						amount = seedType.output[2]
+						entity = newPlant,
+						state = 1,
+						efficiency = newEfficiency
 					}
-					local stackSize = game.item_prototypes[output.name].stack_size
-					if (fieldObj.entity.get_inventory(3).can_insert{name = output.name, count = output.amount}) and (stackSize - fieldObj.entity.get_inventory(3).get_item_count(output.name) >= output.amount) then
-						fieldObj.entity.get_inventory(3).insert{name = output.name, count = output.amount}
-						entity.destroy()
+					fieldObj.entity.get_inventory(1).remove{name = seedInInv.name, count = 1}
+					insertSeed(entInfo, nextUpdate)
+				end
+			end
+			
+			--harvesting--
+		
+			local grownEntities = game.get_surface(fieldSur).find_entities_filtered{area = {fieldPos, {fieldPos.x + 9, fieldPos.y + 8}}, type = "tree"}
+			for _, entity in ipairs(grownEntities) do
+				for _, seedType in pairs(global.tf.seedPrototypes) do
+					if entity.name == seedType.states[#seedType.states] then
+						local output = 
+						{
+							name = seedType.output[1],
+							amount = seedType.output[2]
+						}
+						local stackSize = game.item_prototypes[output.name].stack_size
+						if (fieldObj.entity.get_inventory(3).can_insert{name = output.name, count = output.amount}) and (stackSize - fieldObj.entity.get_inventory(3).get_item_count(output.name) >= output.amount) then
+							fieldObj.entity.get_inventory(3).insert{name = output.name, count = output.amount}
+							entity.destroy()
+						end
 					end
 				end
 			end
+			local nextUpdate = tick + 60
+			insertField(fieldObj, nextUpdate)
+		else 
+			
 		end
-		local nextUpdate = tick + 60
-		insertField(fieldObj, nextUpdate)
 	end
 end
 
