@@ -1,5 +1,5 @@
 # Treefarm-Lite
-This mod enables you to cultivate trees or other plants
+This Factorio mod adds Treefarms, which let you cultivate trees and plants and grow your own wood!
 
 Treefarm-Lite
 Copyright (C) 2016  drs, Bill 'Blu3wolf' Teale
