@@ -1,6 +1,24 @@
 require "defines"
 require "interfaces"
 
+function initialise()
+	global.tf = {}
+	global.tf.fieldList = {}
+	global.tf.fieldsToMaintain = {}
+	global.tf.fieldmk2sToMaintain = {}
+	global.tf.seedPrototypes = {}
+	global.tf.treesToGrow = {}
+	defineStandardSeedPrototypes()
+	populateSeedTypeLookUpTable()
+	global.tf.playersData = {}
+	for pIndex, player in ipairs(game.players) do
+		if global.tf.playersData[pIndex] == nil then
+			global.tf.playersData[pIndex] = {}
+			global.tf.playersData[pIndex].guiOpened = false
+			global.tf.playersData[pIndex].overlayStack = {}
+		end
+	end
+end
 
 local seedTypeLookUpTable = {}
 function populateSeedTypeLookUpTable()
@@ -12,24 +30,7 @@ function populateSeedTypeLookUpTable()
 end
 
 script.on_init(function()
-	if global.tf == nil then
-		global.tf = {}
-		global.tf.fieldList = {}
-		global.tf.fieldsToMaintain = {}
-		global.tf.fieldmk2sToMaintain = {}
-		global.tf.seedPrototypes = {}
-		global.tf.treesToGrow = {}
-		defineStandardSeedPrototypes()
-		populateSeedTypeLookUpTable()
-		global.tf.playersData = {}
-		for pIndex, player in ipairs(game.players) do
-			if global.tf.playersData[pIndex] == nil then
-				global.tf.playersData[pIndex] = {}
-				global.tf.playersData[pIndex].guiOpened = false
-				global.tf.playersData[pIndex].overlayStack = {}
-			end
-		end
-	end
+	initialise()
 end)
 
 script.on_configuration_changed(function(data)
@@ -39,12 +40,17 @@ script.on_configuration_changed(function(data)
 		end
 	end
 	
-	if data.mod_changes ~= nil and tonumber(string.sub(data.mod_changes["Treefarm-Lite"].old_version, 3, 5)) < 3 then
-		v3Update()
-	end
-	
-	if data.mod_changes ~=nil and tonumber(string.sub(data.mod_changes["Treefarm-Lite"].old_version, 3, 5)) < 3.4 then
-		v34Update()
+	if data.mod_changes ~= nil and data.mod_changes["Treefarm-Lite"] ~= nil then
+		if data.mod_changes["Treefarm-Lite"].old_version == nil then
+			initialise()
+		else
+			local oldVer = tonumber(string.sub(data.mod_changes["Treefarm-Lite"].old_version, 3, 5))
+			if oldVer < 3 then
+				v3Update()
+			elseif oldVer < 3.4 then
+				v34Update()
+			end
+		end
 	end
 end)
 
