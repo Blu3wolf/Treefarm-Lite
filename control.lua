@@ -39,7 +39,16 @@ script.on_configuration_changed(function(data)
 			global.tf.seedPrototypes[seedTypeName] = nil
 		end
 	end
-	
+	--[[
+	local first_player = game.players[1]
+	local verString = "old version is" .. data.mod_changes["Treefarm-Lite"].old_version
+	first_player.print(verString)
+	local oldVer = tonumber(string.sub(data.mod_changes["Treefarm-Lite"].old_version, 3, 5))
+	verString = "that is " .. oldVer
+	first_player.print(verString)
+	verString = "Is that less than 3.5? Its " .. tostring(oldVer < 3.5)
+	first_player.print(verString)
+	--]]
 	if data.mod_changes ~= nil and data.mod_changes["Treefarm-Lite"] ~= nil then
 		if data.mod_changes["Treefarm-Lite"].old_version == nil then
 			initialise()
@@ -47,8 +56,9 @@ script.on_configuration_changed(function(data)
 			local oldVer = tonumber(string.sub(data.mod_changes["Treefarm-Lite"].old_version, 3, 5))
 			if oldVer < 3 then
 				v3Update()
-			elseif oldVer < 3.4 then
-				v34Update()
+			end
+			if oldVer < 3.5 then
+				v34Update() -- yes, 34Update is correct for less than 3.5
 			end
 		end
 	end
@@ -258,8 +268,6 @@ script.on_event(defines.events.on_entity_died, function(event)
 	
 end)
 
-
-
 script.on_event(defines.events.on_tick, function(event)
 	if global.tf.treesToGrow[event.tick] ~= nil then
 		growTrees(global.tf.treesToGrow, event.tick)
@@ -295,8 +303,18 @@ function v3Update()
 end
 
 function v34Update()
+	global.tf.fieldsToMaintain = {}
+	global.tf.fieldmk2sToMaintain = {}
 	if global.tf.fieldList then
-		global.tf.fieldList = nil
+		for i, fieldEnt in pairs(global.tf.fieldList) do
+			local nextUpdate = fieldEnt.nextUpdate
+			fieldEnt.nextUpdate = nil
+			if fieldEnt.entity.name == "tf-field" then
+				insertField(fieldEnt, nextUpdate)
+			elseif fieldEnt.entity.name == "tf-fieldmk2" then
+				insertFieldmk2(fieldEnt, nextUpdate)
+			end
+		end
 	end
 end
 
