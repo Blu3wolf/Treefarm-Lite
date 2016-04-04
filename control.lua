@@ -408,8 +408,8 @@ function defineStandardSeedPrototypes()
 
       ["other"] = 0.01
     },
-    basicGrowingTime = 180, 
-    randomGrowingTime = 90, 
+    basicGrowingTime = 18000, 
+    randomGrowingTime = 9000, 
     fertilizerBoost = 1.00
   }
 
