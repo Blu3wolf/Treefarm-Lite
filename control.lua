@@ -47,8 +47,12 @@ script.on_configuration_changed(function(data)
 			local oldVer = tonumber(string.sub(data.mod_changes["Treefarm-Lite"].old_version, 3, 5))
 			if oldVer < 3 then
 				v3Update()
-			elseif oldVer < 3.4 then
+			end
+			if oldVer < 3.4 then
 				v34Update()
+			end
+			if oldVer == 3.4 then
+				error("This version is not compatible with saves made on 0.3.4")
 			end
 		end
 	end
@@ -254,12 +258,6 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
   end
 end)
 
-script.on_event(defines.events.on_entity_died, function(event)
-	
-end)
-
-
-
 script.on_event(defines.events.on_tick, function(event)
 	if global.tf.treesToGrow[event.tick] ~= nil then
 		growTrees(global.tf.treesToGrow, event.tick)
@@ -295,8 +293,14 @@ function v3Update()
 end
 
 function v34Update()
-	if global.tf.fieldList then
-		global.tf.fieldList = nil
+	global.tf.fieldsToMaintain = {}
+	global.tf.fieldmk2sToMaintain = {}
+	for _, fieldEnt in pairs(global.tf.fieldList) do
+		if fieldEnt.entity.name == "tf-field" then
+			insertField(fieldEnt, fieldEnt.nextUpdate)
+		elseif fieldEnt.entity.name == "tf-fieldmk2" then
+			insertFieldmk2(fieldEnt, fieldEnt.nextUpdate)
+		end
 	end
 end
 
@@ -393,8 +397,8 @@ function defineStandardSeedPrototypes()
 
       ["other"] = 0.01
     },
-    basicGrowingTime = 18000, 
-    randomGrowingTime = 9000, 
+    basicGrowingTime = 180, 
+    randomGrowingTime = 90, 
     fertilizerBoost = 1.00
   }
 
@@ -425,6 +429,33 @@ function defineStandardSeedPrototypes()
     randomGrowingTime = 9000,
     fertilizerBoost = 2.00
   }
+	global.tf.baseTrees = 
+	{
+		types = 
+		{
+			"tree-01",
+			"tree-02",
+			"tree-02-red",
+			"tree-03",
+			"tree-04",
+			"tree-05",
+			"tree-06",
+			"tree-06-brown",
+			"tree-07",
+			"tree-08",
+			"tree=08-brown",
+			"tree=08-red",
+			"tree-09",
+			"tree-09-brown",
+			"tree-09-red",
+			"dead-tree",
+			"dry-tree",
+			"dead-grey-trunk",
+			"dry-hairy-tree",
+			"dead-dry-hairy-tree"
+		},
+		output = {"raw-wood", 4}
+	}
 end
 
 
@@ -566,21 +597,16 @@ function fieldMaintainer(tick)
 			end
 			
 			--harvesting--
-		
 			local grownEntities = game.get_surface(fieldSur).find_entities_filtered{area = {fieldPos, {fieldPos.x + 9, fieldPos.y + 8}}, type = "tree"}
-			for _, entity in ipairs(grownEntities) do
+			for _, tree in pairs(grownEntities) do
+				for _, treeType in pairs(global.tf.baseTrees.types) do
+					if tree.name == treeType then
+						fieldHarvest(fieldObj, global.tf.baseTrees, tree)
+					end
+				end
 				for _, seedType in pairs(global.tf.seedPrototypes) do
-					if entity.name == seedType.states[#seedType.states] then
-						local output = 
-						{
-							name = seedType.output[1],
-							amount = seedType.output[2]
-						}
-						local stackSize = game.item_prototypes[output.name].stack_size
-						if (fieldObj.entity.get_inventory(3).can_insert{name = output.name, count = output.amount}) and (stackSize - fieldObj.entity.get_inventory(3).get_item_count(output.name) >= output.amount) then
-							fieldObj.entity.get_inventory(3).insert{name = output.name, count = output.amount}
-							entity.destroy()
-						end
+					if tree.name == seedType.states[#seedType.states] then
+						fieldHarvest(fieldObj, seedType, tree)
 					end
 				end
 			end
@@ -686,6 +712,19 @@ function fieldmk2Maintainer(tick)
 			insertFieldmk2(fieldObj, nextUpdate)
 		end
     end
+end
+
+function fieldHarvest(fieldObj, seedType, tree)
+	local output = 
+	{
+		name = seedType.output[1],
+		amount = seedType.output[2]
+	}
+	local stackSize = game.item_prototypes[output.name].stack_size
+	if (fieldObj.entity.get_inventory(3).can_insert{name = output.name, count = output.amount}) and (stackSize - fieldObj.entity.get_inventory(3).get_item_count(output.name) >= output.amount) then
+		fieldObj.entity.get_inventory(3).insert{name = output.name, count = output.amount}
+		tree.destroy()
+	end
 end
 
 function showFieldmk2GUI(index, playerIndex)
