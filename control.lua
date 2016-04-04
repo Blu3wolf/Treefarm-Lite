@@ -39,7 +39,16 @@ script.on_configuration_changed(function(data)
 			global.tf.seedPrototypes[seedTypeName] = nil
 		end
 	end
-	
+	--[[
+	local first_player = game.players[1]
+	local verString = "old version is" .. data.mod_changes["Treefarm-Lite"].old_version
+	first_player.print(verString)
+	local oldVer = tonumber(string.sub(data.mod_changes["Treefarm-Lite"].old_version, 3, 5))
+	verString = "that is " .. oldVer
+	first_player.print(verString)
+	verString = "Is that less than 3.5? Its " .. tostring(oldVer < 3.5)
+	first_player.print(verString)
+	--]]
 	if data.mod_changes ~= nil and data.mod_changes["Treefarm-Lite"] ~= nil then
 		if data.mod_changes["Treefarm-Lite"].old_version == nil then
 			initialise()
@@ -48,8 +57,8 @@ script.on_configuration_changed(function(data)
 			if oldVer < 3 then
 				v3Update()
 			end
-			if oldVer < 3.4 then
-				v34Update()
+			if oldVer < 3.5 then
+				v34Update() -- yes, 34Update is correct for less than 3.5
 			end
 			if oldVer == 3.4 then
 				error("This version is not compatible with saves made on 0.3.4")
@@ -297,10 +306,11 @@ function v34Update()
 	global.tf.fieldmk2sToMaintain = {}
 	defineStandardSeedPrototypes()
 	for _, fieldEnt in pairs(global.tf.fieldList) do
+		local nextUpdate = fieldEnt.nextUpdate
 		if fieldEnt.entity.name == "tf-field" then
-			insertField(fieldEnt, fieldEnt.nextUpdate)
+			insertField(fieldEnt, nextUpdate)
 		elseif fieldEnt.entity.name == "tf-fieldmk2" then
-			insertFieldmk2(fieldEnt, fieldEnt.nextUpdate)
+			insertFieldmk2(fieldEnt, nextUpdate)
 		end
 	end
 end
@@ -505,6 +515,7 @@ function fieldMaintainer(tick)
 				end
 			end
 		else
+			--game.players[1].print(tick)
 			local fieldSur = fieldObj.entity.surface.name
 			local fieldPos = fieldObj.entity.position
 			-- seedplanting --
