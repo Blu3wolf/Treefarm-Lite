@@ -305,12 +305,23 @@ function v34Update()
 	global.tf.fieldsToMaintain = {}
 	global.tf.fieldmk2sToMaintain = {}
 	defineStandardSeedPrototypes()
+	local fieldReplace = false
 	for _, fieldEnt in pairs(global.tf.fieldList) do
-		local nextUpdate = fieldEnt.nextUpdate
-		if fieldEnt.entity.name == "tf-field" then
-			insertField(fieldEnt, nextUpdate)
-		elseif fieldEnt.entity.name == "tf-fieldmk2" then
-			insertFieldmk2(fieldEnt, nextUpdate)
+		if fieldEnt.nextUpdate then
+			local nextUpdate = fieldEnt.nextUpdate
+			if fieldEnt.entity.name == "tf-field" then
+				insertField(fieldEnt, nextUpdate)
+			elseif fieldEnt.entity.name == "tf-fieldmk2" then
+				insertFieldmk2(fieldEnt, nextUpdate)
+			end
+		else
+			fieldReplace = true
+		end
+	end
+	if fieldReplace then 
+		local message = "Some fields could not be updated and need to be mined and replaced"
+		for i, player in ipairs(game.players) do
+			player.print(message)
 		end
 	end
 end
