@@ -646,7 +646,7 @@ function fieldmk2Maintainer(tick)
 		else
 			local seedInInv = {}
 			for _, seedType in pairs(global.tf.seedPrototypes) do
-				local newAmount = fieldObj,entity.get_item_count(seedType.states[1])
+				local newAmount = fieldObj.entity.get_item_count(seedType.states[1])
 				if newAmount > 0 then
 					seedInInv = 
 					{
