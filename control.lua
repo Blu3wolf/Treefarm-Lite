@@ -305,15 +305,12 @@ end
 function v34Update()
 	global.tf.fieldsToMaintain = {}
 	global.tf.fieldmk2sToMaintain = {}
-	if global.tf.fieldList then
-		for i, fieldEnt in pairs(global.tf.fieldList) do
-			local nextUpdate = fieldEnt.nextUpdate
-			fieldEnt.nextUpdate = nil
-			if fieldEnt.entity.name == "tf-field" then
-				insertField(fieldEnt, nextUpdate)
-			elseif fieldEnt.entity.name == "tf-fieldmk2" then
-				insertFieldmk2(fieldEnt, nextUpdate)
-			end
+	for _, fieldEnt in pairs(global.tf.fieldList) do
+		local nextUpdate = fieldEnt.nextUpdate
+		if fieldEnt.entity.name == "tf-field" then
+			insertField(fieldEnt, nextUpdate)
+		elseif fieldEnt.entity.name == "tf-fieldmk2" then
+			insertFieldmk2(fieldEnt, nextUpdate)
 		end
 	end
 end
@@ -491,6 +488,7 @@ function fieldMaintainer(tick)
 				end
 			end
 		else
+			--game.players[1].print(tick)
 			local fieldSur = fieldObj.entity.surface.name
 			local fieldPos = fieldObj.entity.position
 			-- seedplanting --
