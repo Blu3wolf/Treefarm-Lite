@@ -295,6 +295,7 @@ end
 function v34Update()
 	global.tf.fieldsToMaintain = {}
 	global.tf.fieldmk2sToMaintain = {}
+	defineStandardSeedPrototypes()
 	for _, fieldEnt in pairs(global.tf.fieldList) do
 		if fieldEnt.entity.name == "tf-field" then
 			insertField(fieldEnt, fieldEnt.nextUpdate)
@@ -598,15 +599,21 @@ function fieldMaintainer(tick)
 			
 			--harvesting--
 			local grownEntities = game.get_surface(fieldSur).find_entities_filtered{area = {fieldPos, {fieldPos.x + 9, fieldPos.y + 8}}, type = "tree"}
-			for _, tree in pairs(grownEntities) do
+			for _, tree in ipairs(grownEntities) do
 				for _, treeType in pairs(global.tf.baseTrees.types) do
 					if tree.name == treeType then
 						fieldHarvest(fieldObj, global.tf.baseTrees, tree)
+						local nextUpdate = tick + 60
+						insertField(fieldObj, nextUpdate)
+						return
 					end
 				end
 				for _, seedType in pairs(global.tf.seedPrototypes) do
 					if tree.name == seedType.states[#seedType.states] then
 						fieldHarvest(fieldObj, seedType, tree)
+						local nextUpdate = tick + 60
+						insertField(fieldObj, nextUpdate)
+						return
 					end
 				end
 			end
