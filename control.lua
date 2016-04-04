@@ -200,7 +200,6 @@ script.on_event(defines.events.on_built_entity, function(event)
 	local nextUpdate = event.tick + 60
 	table.insert(global.tf.fieldList, entInfo)
 	insertFieldmk2(entInfo, nextUpdate)
-    showFieldmk2GUI(#global.tf.fieldmk2sToMaintain, event.player_index)
     global.tf.playersData[event.player_index].guiOpened = entInfo.entity
     event.created_entity.destroy()
     return
