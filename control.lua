@@ -725,7 +725,8 @@ function fieldmk2Maintainer(tick)
 					insertSeed(entInfo, nextUpdate)
 				end
 			end
-			-- harvesting--
+			-- harvesting is done in the trees to grow function--
+			-- add the harvest of base trees here? --
 			local nextUpdate = tick + 60
 			insertFieldmk2(fieldObj, nextUpdate)
 		end
