@@ -253,9 +253,6 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
     }
 	local nextUpdate = event.tick + 60
 	insertFieldmk2(entInfo, nextUpdate)
-
-    --global.treefarm.tmpData.fieldmk2Index = #global.treefarm.fieldmk2
-    --showFieldmk2GUI(#global.treefarm.fieldmk2, event.playerindex)
     event.created_entity.destroy()
     return
   end
