@@ -48,11 +48,14 @@ script.on_configuration_changed(function(data)
 			if oldVer < 3 then
 				v3Update()
 			end
-			if oldVer == 3.4 then
-				error("This version is not compatible with saves made on 0.3.4")
-			end
 			if oldVer < 3.5 then
-				v34Update() -- yes, 34Update is correct for less than 3.5
+				v34Update() 
+			end
+			if oldVer == 3.4 then
+				local message = "All treefarms are broken and need to be mined and replaced!"
+				for i, player in ipairs(game.players) do
+					player.print(message)
+				end
 			end
 		end
 	end
