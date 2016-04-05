@@ -39,16 +39,7 @@ script.on_configuration_changed(function(data)
 			global.tf.seedPrototypes[seedTypeName] = nil
 		end
 	end
-	--[[
-	local first_player = game.players[1]
-	local verString = "old version is" .. data.mod_changes["Treefarm-Lite"].old_version
-	first_player.print(verString)
-	local oldVer = tonumber(string.sub(data.mod_changes["Treefarm-Lite"].old_version, 3, 5))
-	verString = "that is " .. oldVer
-	first_player.print(verString)
-	verString = "Is that less than 3.5? Its " .. tostring(oldVer < 3.5)
-	first_player.print(verString)
-	--]]
+	
 	if data.mod_changes ~= nil and data.mod_changes["Treefarm-Lite"] ~= nil then
 		if data.mod_changes["Treefarm-Lite"].old_version == nil then
 			initialise()
