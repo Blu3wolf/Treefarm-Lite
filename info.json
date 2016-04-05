@@ -1,6 +1,6 @@
 {
   "name": "Treefarm-Lite",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "title": "Treefarm-Lite",
   "author": "drs, Blu3wolf",
   "dependencies": ["base >= 0.12.12"],
