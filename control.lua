@@ -557,16 +557,22 @@ function fieldMaintainer(tick)
 			
 			--harvesting--
 			local grownEntities = game.get_surface(fieldSur).find_entities_filtered{area = {fieldPos, {fieldPos.x + 9, fieldPos.y + 8}}, type = "tree"}
+			local broken = false
 			for _, tree in ipairs(grownEntities) do
 				for _, treeType in pairs(global.tf.baseTrees.types) do
 					if tree.name == treeType then
 						fieldHarvest(fieldObj, global.tf.baseTrees, tree)
+						broken = true
 						break
 					end
+				end
+				if broken then
+					break
 				end
 				for _, seedType in pairs(global.tf.seedPrototypes) do
 					if tree.name == seedType.states[#seedType.states] then
 						fieldHarvest(fieldObj, seedType, tree)
+						broken = true
 						break
 					end
 				end
