@@ -43,6 +43,20 @@ script.on_configuration_changed(function(data)
 	if data.mod_changes ~= nil and data.mod_changes["Treefarm-Lite"] ~= nil then
 		if data.mod_changes["Treefarm-Lite"].old_version == nil then
 			initialise()
+		else
+			local oldVer = tonumber(string.sub(data.mod_changes["Treefarm-Lite"].old_version, 3, 5))
+			if oldVer < 3 then
+				v3Update()
+			end
+			if oldVer < 3.5 then
+				v34Update() 
+			end
+			if oldVer == 3.4 then
+				local message = "All treefarms are broken and need to be mined and replaced!"
+				for i, player in ipairs(game.players) do
+					player.print(message)
+				end
+			end
 		end
 	end
 end)
@@ -261,6 +275,55 @@ script.on_event(defines.events.on_tick, function(event)
 		global.tf.fieldmk2sToMaintain[event.tick] = nil
 	end
 end)
+
+function v3Update()
+	if global.tf.treesToGrow == nil then
+		global.tf.treesToGrow = {}
+		for i, entInfo in pairs(global.tf.growing) do
+			local nextGrowthTick = entInfo.nextUpdate
+			local seedTable = 
+			{
+				entity = entInfo.entity,
+				state = entInfo.state,
+				efficiency = entInfo.efficiency
+			}
+			insertSeed(seedTable, nextGrowthTick)
+		end
+		global.tf.growing = nil
+	end
+end
+
+function v34Update()
+	global.tf.fieldsToMaintain = {}
+	global.tf.fieldmk2sToMaintain = {}
+	defineStandardSeedPrototypes()
+	local fieldReplace = {need = false}
+	for i, fieldEnt in ipairs(global.tf.fieldList) do
+		if fieldEnt.nextUpdate then
+			local nextUpdate = fieldEnt.nextUpdate
+			if fieldEnt.entity.name == "tf-field" then
+				insertField(fieldEnt, nextUpdate)
+			elseif fieldEnt.entity.name == "tf-fieldmk2" then
+				insertFieldmk2(fieldEnt, nextUpdate)
+			end
+		else
+			fieldReplace.need = true
+			fieldEnt.listIndex = i
+			table.insert(fieldReplace, fieldEnt)
+		end
+	end
+	if fieldReplace.need then 
+		local message = "Some fields could not be updated and need to be mined and replaced"
+		for i, player in ipairs(game.players) do
+			player.print(message)
+		end
+		for i, fieldEnt in ipairs(fieldReplace) do
+			if not i == need then
+				table.remove(global.tf.fieldList, fieldEnt.listIndex)
+			end
+		end
+	end
+end
 
 function insertSeed(seedTable, nextGrowthTick)
 	if global.tf.treesToGrow[nextGrowthTick] == nil then
