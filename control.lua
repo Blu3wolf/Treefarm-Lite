@@ -218,6 +218,7 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
       }
 	  local nextUpdate = event.tick + 60
 	  insertField(entInfo, nextUpdate)
+		table.insert(global.tf.fieldList, entInfo)
       return
     end
   elseif event.created_entity.name == "tf-fieldmk2Overlay" then
@@ -238,6 +239,7 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
     }
 	local nextUpdate = event.tick + 60
 	insertFieldmk2(entInfo, nextUpdate)
+	table.insert(global.tf.fieldList, entInfo)
     event.created_entity.destroy()
     return
   end
@@ -354,7 +356,7 @@ function defineStandardSeedPrototypes()
       ["other"] = 0.01
     },
     basicGrowingTime = 18000, 
-    randomGrowingTime = 9000, 
+	randomGrowingTime = 9000, 
     fertilizerBoost = 1.00
   }
 
@@ -454,7 +456,7 @@ function fieldMaintainer(tick)
 	for _, fieldObj in pairs(global.tf.fieldsToMaintain[tick]) do
 		if not fieldObj.entity.valid then
 			for i, fieldEnt in pairs(global.tf.fieldList) do
-				if fieldEnt == fieldObj then
+				if fieldEnt.entity == fieldObj.entity then
 					table.remove(global.tf.fieldList, i)
 					break
 				end
@@ -555,21 +557,23 @@ function fieldMaintainer(tick)
 			
 			--harvesting--
 			local grownEntities = game.get_surface(fieldSur).find_entities_filtered{area = {fieldPos, {fieldPos.x + 9, fieldPos.y + 8}}, type = "tree"}
+			local broken = false
 			for _, tree in ipairs(grownEntities) do
 				for _, treeType in pairs(global.tf.baseTrees.types) do
 					if tree.name == treeType then
 						fieldHarvest(fieldObj, global.tf.baseTrees, tree)
-						local nextUpdate = tick + 60
-						insertField(fieldObj, nextUpdate)
-						return
+						broken = true
+						break
 					end
+				end
+				if broken then
+					break
 				end
 				for _, seedType in pairs(global.tf.seedPrototypes) do
 					if tree.name == seedType.states[#seedType.states] then
 						fieldHarvest(fieldObj, seedType, tree)
-						local nextUpdate = tick + 60
-						insertField(fieldObj, nextUpdate)
-						return
+						broken = true
+						break
 					end
 				end
 			end
@@ -717,8 +721,6 @@ function showFieldmk2GUI(index, playerIndex)
 	end
 end
 
-
-
 function createOverlay(playerIndex, fieldTable)
   local radius = fieldTable.areaRadius
   local startPos = {x = fieldTable.entity.position.x - radius,
@@ -741,8 +743,6 @@ function createOverlay(playerIndex, fieldTable)
   end
 end
 
-
-
 function destroyOverlay(playerIndex)
   for _, overlay in ipairs(global.tf.playersData[playerIndex].overlayStack) do
     if overlay.valid then
@@ -751,8 +751,6 @@ function destroyOverlay(playerIndex)
   end
   global.tf.playersData[playerIndex].overlayStack = {}
 end
-
-
 
 function mk2CancelDecontruction(field)
   local fieldPos = {x = field.entity.position.x, y = field.entity.position.y}
@@ -770,8 +768,6 @@ function mk2CancelDecontruction(field)
     end
   end
 end
-
-
 
 function mk2MarkDeconstruction(field)
   local fieldPos = {x = field.entity.position.x, y = field.entity.position.y}
