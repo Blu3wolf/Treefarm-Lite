@@ -218,6 +218,7 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
       }
 	  local nextUpdate = event.tick + 60
 	  insertField(entInfo, nextUpdate)
+		table.insert(global.tf.fieldList, entInfo)
       return
     end
   elseif event.created_entity.name == "tf-fieldmk2Overlay" then
@@ -238,6 +239,7 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
     }
 	local nextUpdate = event.tick + 60
 	insertFieldmk2(entInfo, nextUpdate)
+	table.insert(global.tf.fieldList, entInfo)
     event.created_entity.destroy()
     return
   end
@@ -354,7 +356,7 @@ function defineStandardSeedPrototypes()
       ["other"] = 0.01
     },
     basicGrowingTime = 18000, 
-    randomGrowingTime = 9000, 
+	randomGrowingTime = 9000, 
     fertilizerBoost = 1.00
   }
 
@@ -454,7 +456,7 @@ function fieldMaintainer(tick)
 	for _, fieldObj in pairs(global.tf.fieldsToMaintain[tick]) do
 		if not fieldObj.entity.valid then
 			for i, fieldEnt in pairs(global.tf.fieldList) do
-				if fieldEnt == fieldObj then
+				if fieldEnt.entity == fieldObj.entity then
 					table.remove(global.tf.fieldList, i)
 					break
 				end
@@ -559,17 +561,13 @@ function fieldMaintainer(tick)
 				for _, treeType in pairs(global.tf.baseTrees.types) do
 					if tree.name == treeType then
 						fieldHarvest(fieldObj, global.tf.baseTrees, tree)
-						local nextUpdate = tick + 60
-						insertField(fieldObj, nextUpdate)
-						return
+						break
 					end
 				end
 				for _, seedType in pairs(global.tf.seedPrototypes) do
 					if tree.name == seedType.states[#seedType.states] then
 						fieldHarvest(fieldObj, seedType, tree)
-						local nextUpdate = tick + 60
-						insertField(fieldObj, nextUpdate)
-						return
+						break
 					end
 				end
 			end
