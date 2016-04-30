@@ -717,8 +717,6 @@ function showFieldmk2GUI(index, playerIndex)
 	end
 end
 
-
-
 function createOverlay(playerIndex, fieldTable)
   local radius = fieldTable.areaRadius
   local startPos = {x = fieldTable.entity.position.x - radius,
@@ -741,8 +739,6 @@ function createOverlay(playerIndex, fieldTable)
   end
 end
 
-
-
 function destroyOverlay(playerIndex)
   for _, overlay in ipairs(global.tf.playersData[playerIndex].overlayStack) do
     if overlay.valid then
@@ -751,8 +747,6 @@ function destroyOverlay(playerIndex)
   end
   global.tf.playersData[playerIndex].overlayStack = {}
 end
-
-
 
 function mk2CancelDecontruction(field)
   local fieldPos = {x = field.entity.position.x, y = field.entity.position.y}
@@ -770,8 +764,6 @@ function mk2CancelDecontruction(field)
     end
   end
 end
-
-
 
 function mk2MarkDeconstruction(field)
   local fieldPos = {x = field.entity.position.x, y = field.entity.position.y}
