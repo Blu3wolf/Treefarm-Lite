@@ -39,16 +39,7 @@ script.on_configuration_changed(function(data)
 			global.tf.seedPrototypes[seedTypeName] = nil
 		end
 	end
-	--[[
-	local first_player = game.players[1]
-	local verString = "old version is" .. data.mod_changes["Treefarm-Lite"].old_version
-	first_player.print(verString)
-	local oldVer = tonumber(string.sub(data.mod_changes["Treefarm-Lite"].old_version, 3, 5))
-	verString = "that is " .. oldVer
-	first_player.print(verString)
-	verString = "Is that less than 3.5? Its " .. tostring(oldVer < 3.5)
-	first_player.print(verString)
-	--]]
+	
 	if data.mod_changes ~= nil and data.mod_changes["Treefarm-Lite"] ~= nil then
 		if data.mod_changes["Treefarm-Lite"].old_version == nil then
 			initialise()
@@ -57,11 +48,14 @@ script.on_configuration_changed(function(data)
 			if oldVer < 3 then
 				v3Update()
 			end
-			if oldVer == 3.4 then
-				error("This version is not compatible with saves made on 0.3.4")
-			end
 			if oldVer < 3.5 then
-				v34Update() -- yes, 34Update is correct for less than 3.5
+				v34Update() 
+			end
+			if oldVer == 3.4 then
+				local message = "All treefarms are broken and need to be mined and replaced!"
+				for i, player in ipairs(game.players) do
+					player.print(message)
+				end
 			end
 		end
 	end
@@ -209,7 +203,6 @@ end)
 
 
 script.on_event(defines.events.on_robot_built_entity, function(event)
-  --local player = game.players[event.player_index]
   if event.created_entity.type == "tree" then
     local currentSeedTypeName = seedTypeLookUpTable[event.created_entity.name]
     if currentSeedTypeName ~= nil then
@@ -239,6 +232,7 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
       }
 	  local nextUpdate = event.tick + 60
 	  insertField(entInfo, nextUpdate)
+		table.insert(global.tf.fieldList, entInfo)
       return
     end
   elseif event.created_entity.name == "tf-fieldmk2Overlay" then
@@ -259,9 +253,7 @@ script.on_event(defines.events.on_robot_built_entity, function(event)
     }
 	local nextUpdate = event.tick + 60
 	insertFieldmk2(entInfo, nextUpdate)
-
-    --global.treefarm.tmpData.fieldmk2Index = #global.treefarm.fieldmk2
-    --showFieldmk2GUI(#global.treefarm.fieldmk2, event.playerindex)
+	table.insert(global.tf.fieldList, entInfo)
     event.created_entity.destroy()
     return
   end
@@ -305,8 +297,8 @@ function v34Update()
 	global.tf.fieldsToMaintain = {}
 	global.tf.fieldmk2sToMaintain = {}
 	defineStandardSeedPrototypes()
-	local fieldReplace = false
-	for _, fieldEnt in pairs(global.tf.fieldList) do
+	local fieldReplace = {need = false}
+	for i, fieldEnt in ipairs(global.tf.fieldList) do
 		if fieldEnt.nextUpdate then
 			local nextUpdate = fieldEnt.nextUpdate
 			if fieldEnt.entity.name == "tf-field" then
@@ -315,13 +307,20 @@ function v34Update()
 				insertFieldmk2(fieldEnt, nextUpdate)
 			end
 		else
-			fieldReplace = true
+			fieldReplace.need = true
+			fieldEnt.listIndex = i
+			table.insert(fieldReplace, fieldEnt)
 		end
 	end
-	if fieldReplace then 
+	if fieldReplace.need then 
 		local message = "Some fields could not be updated and need to be mined and replaced"
 		for i, player in ipairs(game.players) do
 			player.print(message)
+		end
+		for i, fieldEnt in ipairs(fieldReplace) do
+			if not i == need then
+				table.remove(global.tf.fieldList, fieldEnt.listIndex)
+			end
 		end
 	end
 end
@@ -420,7 +419,7 @@ function defineStandardSeedPrototypes()
       ["other"] = 0.01
     },
     basicGrowingTime = 18000, 
-    randomGrowingTime = 9000, 
+	randomGrowingTime = 9000, 
     fertilizerBoost = 1.00
   }
 
@@ -520,7 +519,7 @@ function fieldMaintainer(tick)
 	for _, fieldObj in pairs(global.tf.fieldsToMaintain[tick]) do
 		if not fieldObj.entity.valid then
 			for i, fieldEnt in pairs(global.tf.fieldList) do
-				if fieldEnt == fieldObj then
+				if fieldEnt.entity == fieldObj.entity then
 					table.remove(global.tf.fieldList, i)
 					break
 				end
@@ -621,21 +620,23 @@ function fieldMaintainer(tick)
 			
 			--harvesting--
 			local grownEntities = game.get_surface(fieldSur).find_entities_filtered{area = {fieldPos, {fieldPos.x + 9, fieldPos.y + 8}}, type = "tree"}
+			local broken = false
 			for _, tree in ipairs(grownEntities) do
 				for _, treeType in pairs(global.tf.baseTrees.types) do
 					if tree.name == treeType then
 						fieldHarvest(fieldObj, global.tf.baseTrees, tree)
-						local nextUpdate = tick + 60
-						insertField(fieldObj, nextUpdate)
-						return
+						broken = true
+						break
 					end
+				end
+				if broken then
+					break
 				end
 				for _, seedType in pairs(global.tf.seedPrototypes) do
 					if tree.name == seedType.states[#seedType.states] then
 						fieldHarvest(fieldObj, seedType, tree)
-						local nextUpdate = tick + 60
-						insertField(fieldObj, nextUpdate)
-						return
+						broken = true
+						break
 					end
 				end
 			end
@@ -783,8 +784,6 @@ function showFieldmk2GUI(index, playerIndex)
 	end
 end
 
-
-
 function createOverlay(playerIndex, fieldTable)
   local radius = fieldTable.areaRadius
   local startPos = {x = fieldTable.entity.position.x - radius,
@@ -807,8 +806,6 @@ function createOverlay(playerIndex, fieldTable)
   end
 end
 
-
-
 function destroyOverlay(playerIndex)
   for _, overlay in ipairs(global.tf.playersData[playerIndex].overlayStack) do
     if overlay.valid then
@@ -817,8 +814,6 @@ function destroyOverlay(playerIndex)
   end
   global.tf.playersData[playerIndex].overlayStack = {}
 end
-
-
 
 function mk2CancelDecontruction(field)
   local fieldPos = {x = field.entity.position.x, y = field.entity.position.y}
@@ -836,8 +831,6 @@ function mk2CancelDecontruction(field)
     end
   end
 end
-
-
 
 function mk2MarkDeconstruction(field)
   local fieldPos = {x = field.entity.position.x, y = field.entity.position.y}
