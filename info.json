@@ -1,10 +1,8 @@
 {
-  "name": "Treefarm-Lite",
-  "version": "0.3.7",
-  "title": "Treefarm-Lite",
-  "author": "drs, Blu3wolf",
+  "name": "Simply Treefarms",
+  "version": "1.0.0",
+  "title": "Simply Treefarms",
+  "author": "Rseding91",
   "dependencies": ["base >= 0.12.12"],
-  "description": "This mod enables you to cultivate trees and/or other plants.
-
-Published under the GPLv3"
+  "description": "It is what the name says. Assets partially taken from drs, Bill 'Blu3wolf' Teale variant of TreeFarm"
 }
