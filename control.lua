@@ -1,6 +1,22 @@
 require "defines"
 require "interfaces"
 
+function test_addFieldMk2(ent)
+	local entInfo =
+    {
+      entity = ent,
+      active = true,
+      areaRadius = 9,
+      fertAmount = 0,
+      lastSeedPos = {x = -9, y = -9},
+      toBeHarvested = {}
+    }
+	local nextUpdate = game.tick + 60
+	table.insert(global.tf.fieldList, entInfo)
+	insertFieldmk2(entInfo, nextUpdate)
+    
+end
+
 function initialise()
 	global.tf = {}
 	global.tf.fieldList = {}
