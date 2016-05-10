@@ -163,6 +163,8 @@ end
 
 function dump_element(key, value, indent)
 
+	indent = indent or ".    "
+
 	if value == nil then
 		debug_print(indent .. key .. " = nil")
 	elseif type(value) == "table" then
@@ -210,6 +212,14 @@ end
 --
 -- managing players
 --
+
+function get_player_info(player_index)
+	if global.tf.playerData[player_index] == nil then
+		clear_player_data(player_index)
+	end
+	
+	return global.tf.playerData[player_index]
+end
 
 function clear_player_data(player_index)
 	global.tf.playerData[player_index] = { farmInfoConfiguring = nil, overlayEntities = {} }
@@ -653,9 +663,8 @@ end
 
 function event_handle_configuration_gui_click(event)
 
-	local playerInfo = global.tf.playerData[event.player_index]
-	if playerInfo == nil or playerInfo.farmInfoConfiguring == nil then
-		-- player will sometimes be nil if the gui does not belong to any player e.g. the TestMode mod
+	local playerInfo = get_player_info(event.player_index)
+	if playerInfo.farmInfoConfiguring == nil then
 		-- not configuring anything so there is nothing to do
 		return
 	end
@@ -719,7 +728,7 @@ end
 
 function construct_farm_configuration_gui(playerIndex, farmInfo)
 	local player = game.players[playerIndex]
-	local playerInfo = global.tf.playerData[playerIndex]
+	local playerInfo = get_player_info(playerIndex)
 	
 	playerInfo.farmInfoConfiguring = farmInfo
 	
@@ -761,7 +770,7 @@ end
 
 function clear_farm_configuration_gui(playerIndex)
 	local player = game.players[playerIndex]
-	local playerInfo = global.tf.playerData[playerIndex]
+	local playerInfo = get_player_info(playerIndex)
 	
 	if player.gui.center.treefarmGui ~= nil then
 		player.gui.center.treefarmGui.destroy()
