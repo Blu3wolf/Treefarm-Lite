@@ -1,297 +1,31 @@
 require "defines"
 require "interfaces"
 
-function test_addFieldMk2(ent)
-	local entInfo =
-    {
-      entity = ent,
-      active = true,
-      areaRadius = 9,
-      fertAmount = 0,
-      lastSeedPos = {x = -9, y = -9},
-      toBeHarvested = {}
-    }
-	local nextUpdate = game.tick + 60
-	table.insert(global.tf.fieldList, entInfo)
-	insertFieldmk2(entInfo, nextUpdate)
-    
-end
+local constIsInDebug = true
+local constFertilizerName = "tf-fertilizer"
+local constRobotFarmOverlayName = "tf-fieldmk2Overlay"
+local constRobotFarmName = "tf-fieldmk2"
+local constFarmName = "tf-field"
+local constMaxFarmRadius = 9
+local constFarmTickRate = 60
 
-function initialise()
-	global.tf = {}
-	global.tf.fieldList = {}
-	global.tf.fieldsToMaintain = {}
-	global.tf.fieldmk2sToMaintain = {}
-	global.tf.seedPrototypes = {}
-	global.tf.treesToGrow = {}
-	defineStandardSeedPrototypes()
-	populateSeedTypeLookUpTable()
-	global.tf.playersData = {}
-	for pIndex, player in ipairs(game.players) do
-		if global.tf.playersData[pIndex] == nil then
-			global.tf.playersData[pIndex] = {}
-			global.tf.playersData[pIndex].guiOpened = false
-			global.tf.playersData[pIndex].overlayStack = {}
-		end
-	end
-end
+-- maps the names of plant entities to the plant group they are from
+local plantNameToPlantGroup
+local immaturePlantNames
 
-local seedTypeLookUpTable = {}
-function populateSeedTypeLookUpTable()
-  for seedTypeName, seedType in pairs(global.tf.seedPrototypes) do
-    for _, stateName in pairs(seedType.states) do
-      seedTypeLookUpTable[stateName] = seedTypeName
-    end
-  end
-end
+function debug_print(message)
 
-script.on_init(function()
-	initialise()
-end)
-
-script.on_configuration_changed(function(data)
-	for seedTypeName, seedPrototype in pairs (global.tf.seedPrototypes) do
-		if game.item_prototypes[seedPrototype.states[1]] == nil then
-			global.tf.seedPrototypes[seedTypeName] = nil
+	if game ~= nil and constIsInDebug then
+		for i, p in ipairs(game.players) do
+			p.print(message)
 		end
 	end
 	
-	if data.mod_changes ~= nil and data.mod_changes["Treefarm-Lite"] ~= nil then
-		if data.mod_changes["Treefarm-Lite"].old_version == nil then
-			initialise()
-		else
-			local oldVer = tonumber(string.sub(data.mod_changes["Treefarm-Lite"].old_version, 3, 5))
-			if oldVer < 3 then
-				v3Update()
-			end
-			if oldVer < 3.5 then
-				v34Update() 
-			end
-			if oldVer == 3.4 then
-				local message = "All treefarms are broken and need to be mined and replaced!"
-				for i, player in ipairs(game.players) do
-					player.print(message)
-				end
-			end
-		end
-	end
-end)
+end
 
-script.on_load(function()
-	for _, plantTypes in pairs(global.tf.seedPrototypes) do
-		if plantTypes.efficiency.other == 0 then
-			plantTypes.efficiency.other = 0.01
-		end
-	end
-	if seedTypeLookUpTable ~= nil then
-		seedTypeLookUpTable = {}
-	end
-	populateSeedTypeLookUpTable()
-end)
-
-script.on_event(defines.events.on_player_created, function(event)
-  if global.tf.playersData[event.player_index] == nil then
-    global.tf.playersData[event.player_index] = {}
-    global.tf.playersData[event.player_index].guiOpened = false
-    global.tf.playersData[event.player_index].overlayStack = {}
-  end
-end)
-
-script.on_event(defines.events.on_gui_click, function(event)
-  local index = -1
-
-  for k,field in ipairs(global.tf.fieldList) do
-    if (global.tf.playersData[event.element.player_index].guiOpened ~= false) and (global.tf.playersData[event.element.player_index].guiOpened == field.entity) then
-      index = k
-      break
-    end
-  end
-  if index == -1 then return end
-  local player = game.players[event.player_index]
-  if event.element.name == "okButton" then
-    if player.gui.center.fieldmk2Root ~= nil then
-      destroyOverlay(event.element.player_index)
-      global.tf.playersData[event.element.player_index].guiOpened = false
-      player.gui.center.fieldmk2Root.destroy()
-    end
-  elseif event.element.name == "toggleActiveBut" then
-    if global.tf.fieldList[index].active == true then
-      global.tf.fieldList[index].active = false
-      mk2CancelDecontruction(global.tf.fieldList[index])
-      player.gui.center.fieldmk2Root.fieldmk2Table.colLabel2.caption = "not active"
-    else
-      global.tf.fieldList[index].active = true
-      mk2MarkDeconstruction(global.tf.fieldList[index])
-      player.gui.center.fieldmk2Root.fieldmk2Table.colLabel2.caption = "active"
-    end
-    destroyOverlay(event.element.player_index)
-    createOverlay(event.element.player_index, global.tf.fieldList[index])
-  elseif event.element.name == "incAreaBut" then
-    if global.tf.fieldList[index].areaRadius < 9 then
-      global.tf.fieldList[index].areaRadius = global.tf.fieldList[index].areaRadius + 1
-      destroyOverlay(event.element.player_index)
-      createOverlay(event.element.player_index, global.tf.fieldList[index])
-    end
-    player.gui.center.fieldmk2Root.fieldmk2Table.areaLabel2.caption = global.tf.fieldList[index].areaRadius
-  elseif event.element.name == "decAreaBut" then
-    if global.tf.fieldList[index].areaRadius > 1 then
-      global.tf.fieldList[index].areaRadius = global.tf.fieldList[index].areaRadius - 1
-      destroyOverlay(event.element.player_index)
-      createOverlay(event.element.player_index, global.tf.fieldList[index])
-    end
-    player.gui.center.fieldmk2Root.fieldmk2Table.areaLabel2.caption = global.tf.fieldList[index].areaRadius
-  end
-
-end)
-
-script.on_event(defines.events.on_put_item, function(event)
-  for playerIndex,player in pairs(game.players) do
-    if (player ~= nil) and (player.selected ~= nil) then
-      if player.selected.name == "tf-fieldmk2" then
-        for index, entInfo in ipairs(global.tf.fieldList) do
-          if entInfo.entity == player.selected then
-            showFieldmk2GUI(index, playerIndex)
-            global.tf.playersData[playerIndex].guiOpened = entInfo.entity
-          end
-        end
-      end
-    end
-  end
-end)
-
-script.on_event(defines.events.on_built_entity, function(event)
-  local player = game.players[event.player_index]
-  if event.created_entity.type == "tree" then
-    local currentSeedTypeName = seedTypeLookUpTable[event.created_entity.name]
-    if currentSeedTypeName ~= nil then
-      local newEfficiency = calcEfficiency(event.created_entity, false)
-      local deltaTime = math.ceil((math.random() * global.tf.seedPrototypes[currentSeedTypeName].randomGrowingTime + global.tf.seedPrototypes[currentSeedTypeName].basicGrowingTime) / newEfficiency)
-      local nextUpdateIn = event.tick + deltaTime
-      local entInfo =
-      {
-        entity = event.created_entity,
-        state = 1,
-        efficiency = newEfficiency
-      }
-      insertSeed(entInfo, nextUpdateIn)
-      return
-    end
-  elseif event.created_entity.name == "tf-field" then
-    if canPlaceField(event.created_entity) ~= true then
-      player.insert{name = "tf-field", count = 1}
-      event.created_entity.destroy()
-      player.print({"msg_buildingFail"})
-      return
-    else
-      local entInfo =
-      {
-        entity = event.created_entity,
-        fertAmount = 0,
-        lastSeedPos = {x = 2, y = 0}
-      }
-	  local nextUpdate = event.tick + 60
-	  table.insert(global.tf.fieldList, entInfo)
-      insertField(entInfo, nextUpdate)
-      return
-    end
-  elseif event.created_entity.name == "tf-fieldmk2Overlay" then
-    local ent = game.get_surface("nauvis").create_entity{name = "tf-fieldmk2",
-                    position = event.created_entity.position,
-                    force = player.force}
-    local entInfo =
-    {
-      entity = ent,
-      active = true,
-      areaRadius = 9,
-      fertAmount = 0,
-      lastSeedPos = {x = -9, y = -9},
-      toBeHarvested = {}
-    }
-	local nextUpdate = event.tick + 60
-	table.insert(global.tf.fieldList, entInfo)
-	insertFieldmk2(entInfo, nextUpdate)
-    showFieldmk2GUI(#global.tf.fieldList, event.player_index)
-    global.tf.playersData[event.player_index].guiOpened = entInfo.entity
-    event.created_entity.destroy()
-    return
-  end
-end)
-
-
-script.on_event(defines.events.on_robot_built_entity, function(event)
-  if event.created_entity.type == "tree" then
-    local currentSeedTypeName = seedTypeLookUpTable[event.created_entity.name]
-    if currentSeedTypeName ~= nil then
-      local newEfficiency = calcEfficiency(event.created_entity, false)
-      local deltaTime = math.ceil((math.random() * global.tf.seedPrototypes[currentSeedTypeName].randomGrowingTime + global.tf.seedPrototypes[currentSeedTypeName].basicGrowingTime) / newEfficiency)
-      local nextUpdateIn = event.tick + deltaTime
-      local entInfo =
-      {
-        entity = event.created_entity,
-        state = 1,
-        efficiency = newEfficiency
-      }
-      insertSeed(entInfo, nextUpdateIn)
-      return
-    end
-  elseif event.created_entity.name == "tf-field" then
-    if canPlaceField(event.created_entity) ~= true then
-      game.get_surface("nauvis").create_entity{name = "item-on-ground", position = event.created_entity.position, stack = {name = "tf-field", count = 1}}
-      event.created_entity.destroy()
-      return
-    else
-      local entInfo =
-      {
-        entity = event.created_entity,
-        fertAmount = 0,
-        lastSeedPos = {x = 2, y = 0}
-      }
-	  local nextUpdate = event.tick + 60
-	  insertField(entInfo, nextUpdate)
-		table.insert(global.tf.fieldList, entInfo)
-      return
-    end
-  elseif event.created_entity.name == "tf-fieldmk2Overlay" then
-    local ent = game.get_surface("nauvis").create_entity
-    	{
-    		name = "tf-fieldmk2",
-                position = event.created_entity.position,
-                force = event.created_entity.force
-        }
-    local entInfo =
-    {
-      entity = ent,
-      active = true,
-      areaRadius = 9,
-      fertAmount = 0,
-      lastSeedPos = {x = -9, y = -9},
-      toBeHarvested = {}
-    }
-	local nextUpdate = event.tick + 60
-	insertFieldmk2(entInfo, nextUpdate)
-	table.insert(global.tf.fieldList, entInfo)
-    event.created_entity.destroy()
-    return
-  end
-end)
-
-script.on_event(defines.events.on_tick, function(event)
-	if global.tf.treesToGrow[event.tick] ~= nil then
-		growTrees(global.tf.treesToGrow, event.tick)
-		global.tf.treesToGrow[event.tick] = nil
-	end
-	
-	if global.tf.fieldsToMaintain[event.tick] ~= nil then
-		fieldMaintainer(event.tick)
-		global.tf.fieldsToMaintain[event.tick] = nil
-	end
-	
-	if global.tf.fieldmk2sToMaintain[event.tick] ~= nil then
-		fieldmk2Maintainer(event.tick)
-		global.tf.fieldmk2sToMaintain[event.tick] = nil
-	end
-end)
-
+--
+-- data migration functions
+--
 function v3Update()
 	if global.tf.treesToGrow == nil then
 		global.tf.treesToGrow = {}
@@ -341,55 +75,542 @@ function v34Update()
 	end
 end
 
-function insertSeed(seedTable, nextGrowthTick)
-	if global.tf.treesToGrow[nextGrowthTick] == nil then
-		global.tf.treesToGrow[nextGrowthTick] = {}
+function data_migration_to_v4()
+
+	-- convert field data
+	--global.tf.fieldsToMaintain = nil
+	--global.tf.fieldmk2sToMaintain = nil
+	global.tf.farms = {}
+	for idx, field in ipairs(global.tf.fieldList) do
+		if field.entity.valid then
+			local farmInfo = create_farm_info_for(field.entity)
+
+			-- mk1 farms are always active
+			if farmInfo.entity.name == constRobotFarmName then
+				farmInfo.isActive = field.active
+			end
+			
+			
+			farmInfo.fieldRadius = field.areaRadius
+			
+			-- previous versions as fractions of 1.0, but from v4 on, fertilizer is counted in integers
+			farmInfo.fertilizerAmount = field.fertAmount * 10
+			table.insert(global.tf.farms, farmInfo)
+		end
 	end
-	table.insert(global.tf.treesToGrow[nextGrowthTick], seedTable)
+	--global.tf.fieldList = nil
+	
+	-- convert tree data
+	global.tf.trees = {}
+	for tick, list in pairs(global.tf.treesToGrow) do
+		-- for each record, the associated farm will be found when the tree is ready to be harvested
+		global.tf.trees[tick] = list
+	end
+	global.tf.treesToGrow = nil
+	
+	-- convert seed prototypes
+	global.tf.isFertilizerAvailable = game.item_prototypes[constFertilizerName] ~= nil
+	global.tf.plantGroups = global.tf.seedPrototypes or {}
+	populate_seed_name_to_plant_group()
+	global.tf.seedPrototypes = nil
+	
+	-- convert player data and clear all open guis
+	global.tf.playerData = global.tf.playersData or {}
+	for idx, info in ipairs(global.tf.playersData) do
+		clear_player_data(idx)
+		
+		if info.overlayStack ~= nil then
+			for i, overlay in pairs(info.overlayStack) do
+				if overlay.valid then
+					overlay.destroy()
+				end
+			end
+		end
+	end
+	
+	global.tf.playersData = nil
+
 end
 
-function insertField(fieldTable, nextUpdate)
-	if global.tf.fieldsToMaintain[nextUpdate] == nil then
-		global.tf.fieldsToMaintain[nextUpdate] = {}
+--
+-- managing plants and plant groups
+--
+
+function populate_seed_name_to_plant_group()
+	plantNameToPlantGroup = { }
+	immaturePlantNames = {}
+	
+	for name, plantGroup in pairs(global.tf.plantGroups) do
+		--debug_print("creating lookup for: " .. name)
+		for idx, stateName in ipairs(plantGroup.states) do
+			plantNameToPlantGroup[stateName] = plantGroup
+			
+			--debug_print("known plant name: " .. stateName)
+			if idx ~= #plantGroup.states then
+				immaturePlantNames[stateName] = true
+			end
+		end
 	end
-	table.insert(global.tf.fieldsToMaintain[nextUpdate], fieldTable)
+	
 end
 
-function insertFieldmk2(fieldTable, nextUpdate)
-	if global.tf.fieldmk2sToMaintain[nextUpdate] == nil then
-		global.tf.fieldmk2sToMaintain[nextUpdate] = {}
+function dump_element(key, value, indent)
+
+	if value == nil then
+		debug_print(indent .. key .. " = nil")
+	elseif type(value) == "table" then
+		debug_print(indent .. key .. " = {")
+		
+		for k,v in pairs(value) do
+			dump_element(k,v, indent .. "    ")
+		end
+		
+		debug_print(indent .. "}")
+	else
+		debug_print(indent .. key .. " = " .. value)
 	end
-	table.insert(global.tf.fieldmk2sToMaintain[nextUpdate], fieldTable)
 end
 
-function growTrees(treesToGrow, cur_tick)
-	for i, seedTable in pairs(treesToGrow[cur_tick]) do
-		local seedTypeName
-		local newState
-		local oldPlant = treesToGrow[cur_tick][i]
-		if oldPlant.entity.valid then
-			seedTypeName = seedTypeLookUpTable[oldPlant.entity.name]
-			newState = oldPlant.state + 1
-			if newState <= #global.tf.seedPrototypes[seedTypeName].states then
-				local tmpPos = oldPlant.entity.position
-				local newEnt = game.get_surface("nauvis").create_entity{name = global.tf.seedPrototypes[seedTypeLookUpTable[oldPlant.entity.name]].states[newState], position = tmpPos}
-				oldPlant.entity.destroy()
-				local deltaTime = math.ceil((math.random() * global.tf.seedPrototypes[seedTypeName].randomGrowingTime + global.tf.seedPrototypes[seedTypeName].basicGrowingTime) / oldPlant.efficiency)
-				local updatedEntry =
-				{
-					entity = newEnt,
-					state = newState,
-					efficiency = oldPlant.efficiency,
-				}
-				local nextUpdate = cur_tick + deltaTime
-				insertSeed(updatedEntry, nextUpdate)
-			elseif (isInMk2Range(oldPlant.entity.position)) then
-				oldPlant.entity.order_deconstruction(game.forces.player)
+
+
+function register_plant_groups(plantGroups)
+	-- plantGroups is a table w/ the following structure
+	-- {
+	--    plantGroupName = table with the following structure
+	--    {
+	--        states = list of tree names from youngest plant to oldest plant
+	--        efficiency = list of mappings from a terrain type to an growth efficiency (double) on that terrain type
+	--        minGrowingTime = int - min number of ticks between growth stages
+	--        randomGrowingTime = int - max number of additional ticks between growth stages. 
+	--        fertilizerBoost = trees planted w/ fertilizer grow at [terrain efficiency] + fertilizerBoost
+	--    }
+	-- }
+
+	global.tf = global.tf or {}
+	global.tf.plantGroups = global.tf.plantGroups or {}
+	
+	for name, group in pairs(plantGroups) do
+		global.tf.plantGroups[name] = group
+		
+		if global.tf.plantGroups[name].efficiency.other == nil or global.tf.plantGroups[name].efficiency.other <= 0 then
+			global.tf.plantGroups[name].efficiency.other = 0.01
+		end
+	end
+
+	populate_seed_name_to_plant_group()
+end
+
+--
+-- managing players
+--
+
+function clear_player_data(player_index)
+	global.tf.playerData[player_index] = { farmInfoConfiguring = nil, overlayEntities = {} }
+end
+
+
+function initialize()
+	-- this function is designed to be safe to call even when
+	-- the global variables are already initialized
+	global.tf = global.tf or {}
+	global.tf.trees = global.tf.trees or {}
+	global.tf.farms = global.tf.farms or {}
+	global.tf.plantGroups = global.tf.plantGroups or {}
+	global.tf.counter = global.tf.counter or 0
+	global.tf.playerData = global.tf.playerData or {}
+	
+	if game ~= nil then
+		global.tf.isFertilizerAvailable = game.item_prototypes[constFertilizerName] ~= nil
+	end
+	
+	-- register growth states for trees and coral
+	-- which are the built-in treefarm plants
+	register_plant_groups({
+		basicTree = {
+			name = "basicTree",
+			states =
+			{
+				"tf-germling",
+				"tf-very-small-tree",
+				"tf-small-tree",
+				"tf-medium-tree",
+				"tf-mature-tree"
+			},
+			efficiency = 
+			{
+				["grass"] = 1.00,
+				["grass-medium"] = 1.00,
+				["grass-dry"] = 0.90,
+				["dirt"] = 0.75,
+				["dirt-dark"] = 0.75,
+				["hills"] = 0.50,
+				["sand"] = 0.30,
+				["sand-dark"] = 0.30,
+	
+				["other"] = 0.01
+			},
+			basicGrowingTime = 18000, 
+			randomGrowingTime = 9000, 
+			fertilizerBoost = 1.00
+		},
+		basicCoral =
+		{
+			name = "basicCoral",
+			states =
+			{
+				"tf-coral-seed",
+				"tf-small-coral",
+				"tf-medium-coral",
+				"tf-mature-coral"
+			},
+			efficiency = 
+			{
+				["grass"] = 0.50,
+				["grass-medium"] = 0.50,
+				["grass-dry"] = 0.70,
+				["dirt"] = 0.75,
+				["dirt-dark"] = 0.75,
+				["hills"] = 0.75,
+				["sand"] = 1.00,
+				["sand-dark"] = 1.00,
+			
+				["other"] = 0.01
+			},
+			basicGrowingTime = 9000,
+			randomGrowingTime = 9000,
+			fertilizerBoost = 2.00
+		}
+	})
+	
+end
+
+function when_saved_game_loaded()
+	-- the load event is fired before the loaded_mods_changed event
+	-- so for saved games before v4, we need to make sure the plantGroups table exists
+	
+	initialize()
+
+	populate_seed_name_to_plant_group()
+end
+
+function when_loaded_mods_changed(data)
+	-- remove plantGroups that were part of another mod
+	-- TODO does this need to go here
+	-- TODO make sure this works
+	for seedTypeName, seedPrototype in pairs (global.tf.plantGroups) do
+		if game.item_prototypes[seedPrototype.states[1]] == nil then
+			global.tf.plantGroups[seedTypeName] = nil
+		end
+	end
+	
+	if data.mod_changes == nil or data.mod_changes["Treefarm-Lite"] == nil then
+		return
+	end
+	
+	-- for v4 and up, initial is always safe to call - it will not destroy anything that already exists
+	initialize()
+	if data.mod_changes["Treefarm-Lite"].old_version == nil then
+		return
+	end
+	
+	local previousVersion = tonumber(string.sub(data.mod_changes["Treefarm-Lite"].old_version, 3, 5))
+
+	-- NOTE: these migrations are meant to be cumulative. so to upgrade from v3 to v4, 
+	-- the v3 update must run, then the v34 update, then the 4.0 update
+	if previousVersion < 3 then
+		v3Update()
+	end
+	
+	if previousVersion < 3.5 then
+		v34Update() 
+	end
+	
+	if previousVersion == 3.4 then
+		local message = "All treefarms are broken and need to be mined and replaced!"
+		for i, player in ipairs(game.players) do
+			player.print(message)
+		end
+	end
+	
+	if previousVersion < 4.0 then
+		data_migration_to_v4()
+	end
+end
+
+--
+-- creating and managing farms
+--
+
+
+function event_built_entity(event)
+
+	if event.created_entity.name == constFarmName then
+	
+		local tmpInfo = create_farm_info_for(event.created_entity)
+		if can_place_mk1_farm(tmpInfo) then
+			on_farm_created(event.created_entity)
+		else
+			local drop_item_on_ground = true -- robots will drop the item on the group, b/c they can't do anything else
+			
+			-- we won't have a player if this farm was built via robots by blueprint
+			if event.name == "on_built_entity" then
+				local player = game.players[event.player_index]
+				
+				-- add the item back to the player's inventory
+				local num_inserted = player.insert({name = constFarmName, count = 1})
+				if num_inserted >= 1 then
+					-- VERY unlikey to happen, but handling it is free
+					drop_item_on_ground = false
+				end
+				player.print({"msg_buildingFail"})
+			end
+			
+			if drop_item_on_ground then
+				event.created_entity.surface.spill_item_stack(event.created_entity.position, { name=constFarmName, count=1 });
+			end
+			
+			event.created_entity.destroy()
+		end
+		
+	elseif event.created_entity.name == constRobotFarmOverlayName then
+		
+		-- create a mk2 field to replace the overlay
+		local farmEntity = event.created_entity.surface.create_entity({
+			name = constRobotFarmName, 
+			position = event.created_entity.position, 
+			force = event.created_entity.force
+		})
+		local farmInfo = on_farm_created(farmEntity)
+		
+		-- destroy the overlay
+		event.created_entity.destroy()
+		
+		if event.name == "on_built_entity" then
+			-- show the mk2 configuration GUI
+			construct_farm_configuration_gui(event.player_index, farmInfo)
+		end
+	elseif plantNameToPlantGroup[event.created_entity.name] ~= nil then
+		plant_tree(event.created_entity, plantNameToPlantGroup[event.created_entity.name])
+	end
+
+end
+
+function create_farm_info_for(farmEntity)
+	local position = farmEntity.position
+	
+	local farmInfo = {
+		entity = farmEntity,
+		isActive = true,
+		fertilizerAmount = 0,
+		fieldRadius = constMaxFarmRadius,
+		private_current_planting_pos = farmEntity.position
+	}
+	
+	if farmEntity.name == constFarmName then
+		farmInfo.get_farm_boundaries = mk1_get_farm_boundaries
+		farmInfo.next_planting_position = mk1_next_planting_position
+		farmInfo.harvest_tree = mk1_harvest_tree
+		farmInfo.unharvest_tree = mk1_unharvest_tree
+	else
+		farmInfo.get_farm_boundaries = mk2_get_farm_boundaries
+		farmInfo.next_planting_position = mk2_next_planting_position
+		farmInfo.harvest_tree = mk2_harvest_tree
+		farmInfo.unharvest_tree = mk2_unharvest_tree
+	end
+	
+	farmInfo.private_current_planting_pos = farmInfo.get_farm_boundaries(farmInfo).upperLeft
+	farmInfo.private_current_planting_pos.y = farmInfo.private_current_planting_pos.y - 1
+	
+	return farmInfo
+end
+
+function on_farm_created(farmEntity)
+	
+	local farmInfo = create_farm_info_for(farmEntity)
+	
+	table.insert(global.tf.farms, farmInfo)
+	
+	harvest_trees_within_farm_area(farmInfo)
+	
+	return farmInfo
+end
+
+function mk1_get_farm_boundaries(farmInfoSelf)
+	
+	return {
+		upperLeft = {
+			x = farmInfoSelf.entity.position.x + 1,
+			y = farmInfoSelf.entity.position.y
+		},
+		lowerRight = {
+			x = farmInfoSelf.entity.position.x + 9,
+			y = farmInfoSelf.entity.position.y + 7
+		}
+	}
+end
+
+function mk2_get_farm_boundaries(farmInfoSelf)
+
+	return {
+		upperLeft = {
+			x = farmInfoSelf.entity.position.x - farmInfoSelf.fieldRadius - 1 ,
+			y = farmInfoSelf.entity.position.y - farmInfoSelf.fieldRadius - 1
+		},
+		lowerRight = {
+			x = farmInfoSelf.entity.position.x + farmInfoSelf.fieldRadius,
+			y = farmInfoSelf.entity.position.y + farmInfoSelf.fieldRadius
+		}
+	}
+
+end
+
+function mk1_next_planting_position(farmInfoSelf)
+
+	local boundary = farmInfoSelf.get_farm_boundaries(farmInfoSelf)
+	
+	if farmInfoSelf.private_current_planting_pos.x < boundary.upperLeft.x + 1 then
+		farmInfoSelf.private_current_planting_pos.x = boundary.upperLeft.x + 1
+	end
+	
+	-- move the plant position 1 forward
+	farmInfoSelf.private_current_planting_pos.y = farmInfoSelf.private_current_planting_pos.y + 1
+	if farmInfoSelf.private_current_planting_pos.y > boundary.lowerRight.y then
+		farmInfoSelf.private_current_planting_pos.y = boundary.upperLeft.y
+		
+		farmInfoSelf.private_current_planting_pos.x = farmInfoSelf.private_current_planting_pos.x + 1
+		if farmInfoSelf.private_current_planting_pos.x > (boundary.lowerRight.x - 1) then
+			farmInfoSelf.private_current_planting_pos.x = boundary.upperLeft.x + 1
+		end
+	end
+	
+	return farmInfoSelf.private_current_planting_pos
+	
+end
+
+function mk2_next_planting_position(farmInfoSelf)
+	local boundary = farmInfoSelf.get_farm_boundaries(farmInfoSelf)
+	
+	-- move the plant position 1 forward
+	farmInfoSelf.private_current_planting_pos.y = farmInfoSelf.private_current_planting_pos.y + 1
+	if farmInfoSelf.private_current_planting_pos.y > boundary.lowerRight.y then
+		farmInfoSelf.private_current_planting_pos.y = boundary.upperLeft.y
+		
+		farmInfoSelf.private_current_planting_pos.x = farmInfoSelf.private_current_planting_pos.x + 1
+		if farmInfoSelf.private_current_planting_pos.x > boundary.lowerRight.x then
+			farmInfoSelf.private_current_planting_pos.x = boundary.upperLeft.x
+		end
+	end
+	
+	return farmInfoSelf.private_current_planting_pos
+end
+
+function mk1_harvest_tree(farmInfoSelf, treeEntity)
+
+	local minable = game.entity_prototypes[treeEntity.name].mineable_properties
+	if minable == nil or not minable.minable then
+		return false -- can't harvest something that isn't minable
+	end
+	
+	local inventory = farmInfoSelf.entity.get_output_inventory()
+	if inventory ~= nil then
+		-- is there space for all the mining products in inventory?
+		local can_harvest = true
+		for idx, v in ipairs(minable.products) do
+			local stack_size = game.item_prototypes[v.name].stack_size
+			local item_count = v.amount or v.amount_min or 0
+			-- have to check that the total will be less than a single stack b/c can_insert() 
+			-- will return true if only some of the items can be added to inventory
+			if inventory.get_item_count(v.name) + item_count > stack_size then
+				can_harvest = false
+				break;
+			end
+		end
+	
+		if can_harvest then
+			for idx, v in ipairs(minable.products) do
+				local item_count = v.amount or v.amount_min or 0
+				inventory.insert({ name = v.name, count = item_count })
+			end
+			
+			treeEntity.destroy()
+			return true
+		end
+	end
+	
+	return false
+end
+
+function mk2_harvest_tree(farmInfoSelf, treeEntity)
+	treeEntity.order_deconstruction(farmInfoSelf.entity.force)
+	return true
+end
+
+function mk1_unharvest_tree(farmInfoSelf, treeEntity)
+	-- noop. can't unharvest trees in a mk1 farm
+	return true
+end
+
+function mk2_unharvest_tree(farmInfoSelf, treeEntity)
+	treeEntity.cancel_deconstruction(farmInfoSelf.entity.force)
+	return true
+end
+
+function harvest_trees_within_farm_area(farmInfo)
+
+	-- harvest any mature trees within the field's boundaries
+	local boundary = farmInfo.get_farm_boundaries(farmInfo)
+	
+	for _, treeEntity in pairs(farmInfo.entity.surface.find_entities_filtered( {area = { boundary.upperLeft, boundary.lowerRight }, type = "tree"} )) do
+		if immaturePlantNames[treeEntity.name] == nil then
+			farmInfo.harvest_tree(farmInfo, treeEntity)
+		end
+	end
+
+end
+
+function unharvest_trees_within_farm_area(farmInfo)
+	-- undoes the effects of the harvest function
+	-- so this function does nothing for the mk1 farm
+	-- and unmarks trees for deconstruction for the mk2 farm
+	
+	if farmInfo.entity.name == constFarmName then
+		return
+	end
+	
+	local boundary = farmInfo.get_farm_boundaries(farmInfo)
+
+	for _, treeEntity in pairs(farmInfo.entity.surface.find_entities_filtered({area = {boundary.upperLeft, boundary.lowerRight}, type = "tree"})) do
+		for _, seedType in pairs(global.tf.plantGroups) do
+			if treeEntity.name == seedType.states[#seedType.states] then
+				farmInfo.unharvest_tree(farmInfo, treeEntity)
 			end
 		end
 	end
 end
 
+function can_place_mk1_farm(farmInfo)
+	
+	local surface = farmInfo.entity.surface
+	local boundary = farmInfo.get_farm_boundaries(farmInfo)
+	for k, ent in ipairs( surface.find_entities ({ boundary.upperLeft, boundary.lowerRight })  ) do
+		-- only players and trees are allowed to occupy the same space as a mk1 field
+		if ent.name ~= "player" and ent.type ~= "tree" and ent.type ~= "decorative" then
+			return false
+		end
+	end
+	
+	-- check for water collisions
+	for i = boundary.upperLeft.x, boundary.lowerRight.x, 1 do
+		for j = boundary.upperLeft.y, boundary.lowerRight.y, 1 do
+			if surface.get_tile(i,j).collides_with("water-tile") then
+				return false
+			end
+		end
+	end
+	
+	return true
+	
+--[[
 function canPlaceField(field)
   local fPosX, fPosY = field.position.x, field.position.y
   for x = 1, 9 do
@@ -406,461 +627,435 @@ function canPlaceField(field)
   if #blockingField > 1 then return false end
   return true
 end
-
-
-
-function defineStandardSeedPrototypes()
-  global.tf.seedPrototypes.basicTree =
-  {
-    states =
-    {
-      "tf-germling",
-      "tf-very-small-tree",
-      "tf-small-tree",
-      "tf-medium-tree",
-      "tf-mature-tree"
-    },
-    output = {"raw-wood", 5},
-    efficiency = 
-    {
-      ["grass"] = 1.00,
-      ["grass-medium"] = 1.00,
-      ["grass-dry"] = 0.90,
-      ["dirt"] = 0.75,
-      ["dirt-dark"] = 0.75,
-      ["hills"] = 0.50,
-      ["sand"] = 0.30,
-      ["sand-dark"] = 0.30,
-
-      ["other"] = 0.01
-    },
-    basicGrowingTime = 18000, 
-	randomGrowingTime = 9000, 
-    fertilizerBoost = 1.00
-  }
-
-  global.tf.seedPrototypes.basicCoral =
-  {
-    states =
-    {
-      "tf-coral-seed",
-      "tf-small-coral",
-      "tf-medium-coral",
-      "tf-mature-coral"
-    },
-    output = {"raw-wood", 3},
-    efficiency = 
-    {
-      ["grass"] = 0.50,
-      ["grass-medium"] = 0.50,
-      ["grass-dry"] = 0.70,
-      ["dirt"] = 0.75,
-      ["dirt-dark"] = 0.75,
-      ["hills"] = 0.75,
-      ["sand"] = 1.00,
-      ["sand-dark"] = 1.00,
-
-      ["other"] = 0.01
-    },
-    basicGrowingTime = 9000,
-    randomGrowingTime = 9000,
-    fertilizerBoost = 2.00
-  }
-	global.tf.baseTrees = 
-	{
-		types = 
-		{
-			"tree-01",
-			"tree-02",
-			"tree-02-red",
-			"tree-03",
-			"tree-04",
-			"tree-05",
-			"tree-06",
-			"tree-06-brown",
-			"tree-07",
-			"tree-08",
-			"tree=08-brown",
-			"tree=08-red",
-			"tree-09",
-			"tree-09-brown",
-			"tree-09-red",
-			"dead-tree",
-			"dry-tree",
-			"dead-grey-trunk",
-			"dry-hairy-tree",
-			"dead-dry-hairy-tree"
-		},
-		output = {"raw-wood", 4}
-	}
+]]
 end
 
+--
+-- mk2 farm GUI management
+--
 
+function event_handle_configuration_gui_click(event)
 
-function calcEfficiency(entity, fertilizerApplied)
-  local seedType = seedTypeLookUpTable[entity.name]
-  local currentTilename = game.get_surface("nauvis").get_tile(entity.position.x, entity.position.y).name or "other"
+	local playerInfo = global.tf.playerData[event.player_index]
+	if playerInfo.farmInfoConfiguring == nil then
+		-- not configuring anything so there is nothing to do
+		return
+	end
+	
+	if not playerInfo.farmInfoConfiguring.entity.valid then
+		-- the treefarm was somehow destroyed in between starting the configuration and this event
+		clear_farm_configuration_gui(event.player_index)
+		return
+	end
+	
+	local farmInfo = playerInfo.farmInfoConfiguring
+	local player = game.players[event.player_index]
 
-  local efficiency
-  if global.tf.seedPrototypes[seedType].efficiency[currentTilename] == nil then
-    return global.tf.seedPrototypes[seedType].efficiency.other
-  else
-    efficiency = global.tf.seedPrototypes[seedType].efficiency[currentTilename]
-    if fertilizerApplied then
-      return efficiency + global.tf.seedPrototypes[seedType].fertilizerBoost
-    else
-      return efficiency
-    end
-  end
-end
-
-function isInMk2Range(plantPos)
-  for _, field in ipairs(global.tf.fieldList) do
-    if (field.entity.valid) and (field.entity.name == "tf-fieldmk2") and (field.active == true) then
-      local fieldPos = field.entity.position
-      local areaPosMin = {x = fieldPos.x - field.areaRadius - 1, y = fieldPos.y - field.areaRadius - 1}
-      local areaPosMax = {x = fieldPos.x + field.areaRadius + 1, y = fieldPos.y + field.areaRadius + 1}
-      if (plantPos.x >= areaPosMin.x) and
-         (plantPos.x <= areaPosMax.x) and
-         (plantPos.y >= areaPosMin.y) and
-         (plantPos.y <= areaPosMax.y) then
-        return true
-      end
-    end
-  end
-  return false
-end
-
-function fieldMaintainer(tick)
-	for _, fieldObj in pairs(global.tf.fieldsToMaintain[tick]) do
-		if not fieldObj.entity.valid then
-			for i, fieldEnt in pairs(global.tf.fieldList) do
-				if fieldEnt.entity == fieldObj.entity then
-					table.remove(global.tf.fieldList, i)
-					break
-				end
-			end
-		else
-			--game.players[1].print(tick)
-			local fieldSur = fieldObj.entity.surface.name
-			local fieldPos = fieldObj.entity.position
-			-- seedplanting --
-			local seedInInv = {}
-			for _, seedType in pairs(global.tf.seedPrototypes) do
-				local newAmount = fieldObj.entity.get_inventory(1).get_item_count(seedType.states[1])
-				if newAmount > 0 then
-					seedInInv = 
-					{
-						name = seedType.states[1],
-						amount = newAmount
-					}
-					break
-				end
-			end
-		
-			local seedPos = false
-			if seedInInv.name ~= nil then
-				local placed = false
-				local lastPos = fieldObj.lastSeedPos
-				for dx = lastPos.x, 8 do
-					for dy = 0, 6 do
-						if (game.get_surface(fieldSur).can_place_entity{name = "tf-germling", position = {fieldPos.x + dx - 0.5, fieldPos.y + dy - 0.5}}) then
-							seedPos = 
-							{
-								x = fieldPos.x + dx - 0.5,
-								y = fieldPos.y + dy - 0.5
-							}
-							placed = true
-							fieldObj.lastSeedPos = 
-							{
-								x = dx,
-								y = dy
-							}
-							break
-						end
-					end
-					if placed == true then
-						break
-					end
-				end
-				if (placed == false) and (lastPos.x ~= 2) then
-					for dx = 2, lastPos.x - 1 do
-						for dy = 0, 6 do
-							if (game.get_surface(fieldSur).can_place_entity{name = "tf-germling", position = {fieldPos.x + dx - 0.5, fieldPos.y + dy - 0.5}}) then
-								seedPos = 
-								{
-									x = fieldPos.x + dx - 0.5, 
-									y = fieldPos.y + dy - 0.5
-								}
-								placed = true
-								fieldObj.lastSeedPos = 
-								{
-									x = dx,
-									y = dy
-								}
-								break
-							end
-						end
-						if placed == true then
-							break
-						end
-					end
-				end
-				if seedPos ~= false then
-					local seedTypeName = seedTypeLookUpTable[seedInInv.name]
-					local newPlant = game.get_surface(fieldSur).create_entity{name = seedInInv.name, position = seedPos}
-					local newFertilized = false
-					
-					if (fieldObj.fertAmount < 0.1) and (game.item_prototypes["tf-fertilizer"]) ~= nil and (fieldObj.entity.get_inventory(2).get_item_count("tf-fertilizer") > 0) then
-						fieldObj.fertAmount = 1
-						fieldObj.entity.get_inventory(2).remove{name = "tf-fertilizer", count = 1}
-					end
-					
-					if fieldObj.fertAmount >= 0.1 then
-						fieldObj.fertAmount = fieldObj.fertAmount - 0.1
-						newFertilized = true
-					end
-					
-					local newEfficiency = calcEfficiency(newPlant, newFertilized)
-					local nextUpdate = tick + math.ceil((math.random() * global.tf.seedPrototypes[seedTypeName].randomGrowingTime + global.tf.seedPrototypes[seedTypeName].basicGrowingTime) / newEfficiency)
-					local entInfo = 
-					{
-						entity = newPlant,
-						state = 1,
-						efficiency = newEfficiency
-					}
-					fieldObj.entity.get_inventory(1).remove{name = seedInInv.name, count = 1}
-					insertSeed(entInfo, nextUpdate)
-				end
-			end
+	if event.element.name == "okButton" then
+	
+		clear_farm_configuration_gui(event.player_index)
+	
+	elseif event.element.name == "toggleActiveBut" then
+		if farmInfo.isActive then
+			farmInfo.isActive = false
 			
-			--harvesting--
-			local grownEntities = game.get_surface(fieldSur).find_entities_filtered{area = {fieldPos, {fieldPos.x + 9, fieldPos.y + 8}}, type = "tree"}
-			local broken = false
-			for _, tree in ipairs(grownEntities) do
-				for _, treeType in pairs(global.tf.baseTrees.types) do
-					if tree.name == treeType then
-						fieldHarvest(fieldObj, global.tf.baseTrees, tree)
-						broken = true
-						break
-					end
-				end
-				if broken then
-					break
-				end
-				for _, seedType in pairs(global.tf.seedPrototypes) do
-					if tree.name == seedType.states[#seedType.states] then
-						fieldHarvest(fieldObj, seedType, tree)
-						broken = true
-						break
-					end
-				end
-			end
-			local nextUpdate = tick + 60
-			insertField(fieldObj, nextUpdate)
-		end
-	end
-end
-
-function fieldmk2Maintainer(tick)
-  -- SEEDPLANTING --
-	for _, fieldObj in pairs(global.tf.fieldmk2sToMaintain[tick]) do
-		if not fieldObj.entity.valid then
-			for i, fieldEnt in pairs(global.tf.fieldList) do
-				if fieldObj == fieldEnt then
-					table.remove(global.tf.fieldList, i)
-					break
-				end
-			end
+			unharvest_trees_within_farm_area(farmInfo)
+			player.gui.center.treefarmGui.treefarmGuiTable.colLabel2.caption = {"notActive"}
 		else
-			local seedInInv = {}
-			for _, seedType in pairs(global.tf.seedPrototypes) do
-				local newAmount = fieldObj.entity.get_item_count(seedType.states[1])
-				if newAmount > 0 then
-					seedInInv = 
-					{
-						name = seedType.states[1],
-						amount = newAmount
-					}
-					break
-				end
-			end
-			local seedPos = false
-			local fieldPos = fieldObj.entity.position
-			local fieldSur = fieldObj.entity.surface.name
-			if seedInInv.name ~= nil then
-				local placed = false
-				local lastPos = fieldObj.lastSeedPos
-				if lastPos.x < -fieldObj.areaRadius then
-					lastPos.x = -fieldObj.areaRadius
-				elseif lastPos.x > fieldObj.areaRadius then
-					lastPos.x = fieldObj.areaRadius
-				end
-				if lastPos.y < -fieldObj.areaRadius then
-					lastPos.y = -fieldObj.areaRadius
-				elseif lastPos.y > fieldObj.areaRadius then
-					lastPos.y = fieldObj.areaRadius
-				end
-				for dx = lastPos.x, fieldObj.areaRadius do
-					for dy = -fieldObj.areaRadius, fieldObj.areaRadius do
-						if (game.get_surface(fieldSur).can_place_entity{name = "tf-germling", position = {fieldPos.x + dx - 0.5, fieldPos.y + dy - 0.5}}) then
-							seedPos = {x = fieldPos.x + dx - 0.5, y = fieldPos.y + dy - 0.5}
-							placed = true
-							fieldObj.lastSeedPos = {x = dx, y = dy}
-							break
-						end
-					end
-					if placed == true then
-						break
-					end
-				end
-				if (placed == false) and (lastPos.x ~= -fieldObj.areaRadius) then
-					for dx = -fieldObj.areaRadius, lastPos.x - 1 do
-						for dy = -fieldObj.areaRadius, fieldObj.areaRadius do
-							if (game.get_surface(fieldSur).can_place_entity{name = "tf-germling", position = {fieldPos.x + dx - 0.5, fieldPos.y + dy - 0.5}}) then
-								seedPos = {x = fieldPos.x + dx - 0.5, y = fieldPos.y + dy - 0.5}
-								placed = true
-								fieldObj.lastSeedPos = {x = dx, y = dy}
-								break
-							end
-						end
-						if placed == true then
-							break
-						end
-					end
-				end
-				if seedPos ~= false then
-					local seedTypeName = seedTypeLookUpTable[seedInInv.name]
-					local newEntity = game.get_surface("nauvis").create_entity{name = seedInInv.name, position = seedPos}
-					local newFertilized = false
-					if (fieldObj.fertAmount < 0.1) and (game.item_prototypes["tf-fertilizer"] ~= nil) and (fieldObj.entity.get_inventory(1).get_item_count("tf-fertilizer") > 0) then
-						fieldObj.fertAmount = 1
-						fieldObj.entity.get_inventory(1).remove{name = "tf-fertilizer", count = 1}
-					end
-					if fieldObj.fertAmount >= 0.1 then
-						fieldObj.fertAmount = fieldObj.fertAmount - 0.1
-						newFertilized = true
-					end
-					local newEfficiency = calcEfficiency(newEntity, newFertilized)
-					local nextUpdate = tick + math.ceil((math.random() * global.tf.seedPrototypes[seedTypeName].randomGrowingTime + global.tf.seedPrototypes[seedTypeName].basicGrowingTime) / newEfficiency)
-					local entInfo = 
-					{
-						entity = newEntity,
-						state = 1,
-						efficiency = newEfficiency
-					}
-					fieldObj.entity.get_inventory(1).remove{name = seedInInv.name, count = 1}
-					insertSeed(entInfo, nextUpdate)
-				end
-			end
-			-- harvesting is done in the trees to grow function--
-			-- add the harvest of base trees here? --
-			local nextUpdate = tick + 60
-			insertFieldmk2(fieldObj, nextUpdate)
+			farmInfo.isActive = true
+			
+			harvest_trees_within_farm_area(farmInfo)
+			player.gui.center.treefarmGui.treefarmGuiTable.colLabel2.caption = {"active"}
 		end
-    end
-end
-
-function fieldHarvest(fieldObj, seedType, tree)
-	local output = 
-	{
-		name = seedType.output[1],
-		amount = seedType.output[2]
-	}
-	local stackSize = game.item_prototypes[output.name].stack_size
-	if (fieldObj.entity.get_inventory(3).can_insert{name = output.name, count = output.amount}) and (stackSize - fieldObj.entity.get_inventory(3).get_item_count(output.name) >= output.amount) then
-		fieldObj.entity.get_inventory(3).insert{name = output.name, count = output.amount}
-		tree.destroy()
+		
+		clear_farm_overlay(playerInfo)
+		create_farm_overlay(playerInfo, farmInfo)
+	elseif event.element.name == "incAreaBut" then
+		if farmInfo.fieldRadius < constMaxFarmRadius then
+			farmInfo.fieldRadius = farmInfo.fieldRadius + 1
+			
+			-- reset the planting position to the first position in the new radius
+			farmInfo.private_current_planting_pos = farmInfo.get_farm_boundaries(farmInfo).upperLeft
+			farmInfo.private_current_planting_pos.y = farmInfo.private_current_planting_pos.y - 1
+			
+			clear_farm_overlay(playerInfo)
+			create_farm_overlay(playerInfo, farmInfo)
+		end
+		
+		player.gui.center.treefarmGui.treefarmGuiTable.areaLabel2.caption = farmInfo.fieldRadius
+	elseif event.element.name == "decAreaBut" then
+		if farmInfo.fieldRadius > 1 then
+			farmInfo.fieldRadius = farmInfo.fieldRadius - 1
+			
+			-- reset the planting position to the first position in the new radius
+			farmInfo.private_current_planting_pos = farmInfo.get_farm_boundaries(farmInfo).upperLeft
+			farmInfo.private_current_planting_pos.y = farmInfo.private_current_planting_pos.y - 1
+			
+			clear_farm_overlay(playerInfo)
+			create_farm_overlay(playerInfo, farmInfo)
+		end
+		
+		player.gui.center.treefarmGui.treefarmGuiTable.areaLabel2.caption = farmInfo.fieldRadius
 	end
 end
 
-function showFieldmk2GUI(index, playerIndex)
+function construct_farm_configuration_gui(playerIndex, farmInfo)
 	local player = game.players[playerIndex]
-	if player.gui.center.fieldmk2Root == nil then
-		local rootFrame = player.gui.center.add{type = "frame", name = "fieldmk2Root", caption = game.entity_prototypes["tf-fieldmk2"].localised_name, direction = "vertical"}
-		local rootTable = rootFrame.add{type ="table", name = "fieldmk2Table", colspan = 4}
+	local playerInfo = global.tf.playerData[playerIndex]
+	
+	playerInfo.farmInfoConfiguring = farmInfo
+	
+	if player.gui.center.treefarmGui == nil then
+		local rootFrame = player.gui.center.add {
+			type = "frame", 
+			name = "treefarmGui", 
+			caption = game.entity_prototypes[constRobotFarmName].localised_name, 
+			direction = "vertical"
+		}
+		
+		local rootTable = rootFrame.add{
+			type ="table", 
+			name = "treefarmGuiTable", 
+			colspan = 4
+		}
 		rootTable.add{type = "label", name = "colLabel1", caption = {"thisFieldIs"}}
+		
 		local status = "active / not active"
-		if global.tf.fieldList[index].active == true then
+		if farmInfo.isActive then
 			status = {"active"}
 		else
 			status = {"notActive"}
 		end
+		
 		rootTable.add{type = "label", name = "colLabel2", caption = status}
 		rootTable.add{type = "button", name = "toggleActiveBut", caption = {"toggleButtonCaption"}, style = "tf_smallerButtonFont"}
 		rootTable.add{type = "label", name = "colLabel4", caption = ""}
 		rootTable.add{type = "label", name = "areaLabel1", caption = {"usedArea"}}
-		rootTable.add{type = "label", name = "areaLabel2", caption = global.tf.fieldList[index].areaRadius}
+		rootTable.add{type = "label", name = "areaLabel2", caption = farmInfo.fieldRadius}
 		rootTable.add{type = "button", name = "incAreaBut", caption = "+", style = "tf_smallerButtonFont"}
 		rootTable.add{type = "button", name = "decAreaBut", caption = "-", style = "tf_smallerButtonFont"}
 		rootFrame.add{type = "button", name = "okButton", caption = {"okButtonCaption"}, style = "tf_smallerButtonFont"}
-		if (global.tf.playersData[playerIndex].overlayStack == nil) or (#global.tf.playersData[playerIndex].overlayStack == 0) then
-			createOverlay(playerIndex, global.tf.fieldList[index])
+		
+		clear_farm_overlay(playerInfo)
+		create_farm_overlay(playerInfo, farmInfo)
+	end
+end
+
+function clear_farm_configuration_gui(playerIndex)
+	local player = game.players[playerIndex]
+	local playerInfo = global.tf.playerData[playerIndex]
+	
+	if player.gui.center.treefarmGui ~= nil then
+		player.gui.center.treefarmGui.destroy()
+	end
+	
+	playerInfo.farmInfoConfiguring = nil
+	clear_farm_overlay(playerInfo)
+end
+
+function create_farm_overlay(playerInfo, farmInfo)
+
+	local boundary = farmInfo.get_farm_boundaries(farmInfo)
+	local overlayName = nil
+	if farmInfo.isActive then overlayName = "tf-overlay-green" else overlayName = "tf-overlay-red" end
+	
+	if playerInfo.overlayEntities == nil then
+		playerInfo.overlayEntities = {}
+	end
+	
+	for i = boundary.upperLeft.x+1, boundary.lowerRight.x+1, 1 do
+		for j = boundary.upperLeft.y+1, boundary.lowerRight.y+1, 1 do
+			local overlay = farmInfo.entity.surface.create_entity({
+				name = overlayName, 
+				position ={i,j}, 
+				force = farmInfo.entity.force
+			})
+			table.insert(playerInfo.overlayEntities, overlay)
 		end
 	end
 end
 
-function createOverlay(playerIndex, fieldTable)
-  local radius = fieldTable.areaRadius
-  local startPos = {x = fieldTable.entity.position.x - radius,
-                    y = fieldTable.entity.position.y - radius}
-
-  if fieldTable.active == true then
-    for i = 0, 2 * radius + 1 do
-      for j = 0, 2 * radius + 1 do
-        local overlay = game.get_surface("nauvis").create_entity{name = "tf-overlay-green", position ={x = startPos.x + i, y = startPos.y + j}, force = game.forces.player}
-        table.insert(global.tf.playersData[playerIndex].overlayStack, overlay)
-      end
-    end
-  else
-    for i = 0, 2 * radius + 1 do
-      for j = 0, 2 * radius + 1 do
-        local overlay = game.get_surface("nauvis").create_entity{name = "tf-overlay-red", position ={x = startPos.x + i, y = startPos.y + j}, force = game.forces.player}
-        table.insert(global.tf.playersData[playerIndex].overlayStack, overlay)
-      end
-    end
-  end
+function clear_farm_overlay(playerInfo)
+	if playerInfo.overlayEntities ~= nil then
+		for _, v in pairs(playerInfo.overlayEntities) do
+			v.destroy()
+		end
+		
+		playerInfo.overlayEntities = nil
+	end
 end
 
-function destroyOverlay(playerIndex)
-  for _, overlay in ipairs(global.tf.playersData[playerIndex].overlayStack) do
-    if overlay.valid then
-      overlay.destroy()
-    end
-  end
-  global.tf.playersData[playerIndex].overlayStack = {}
+--
+-- farm maintainence
+--
+
+function tick_farms(group_num)
+	-- don't tick of there are no farms
+	if global.tf.farms == nil or #global.tf.farms == 0 then
+		return 0
+	end
+
+	-- constFarmTickRate governs how frequently each farm is updated, by splitting
+	-- the farms into constFarmTickRate groups and updating all the farms in each
+	-- group every time it is that group's turn. A tick rate of 30 means that
+	-- each farm will update twice a second; a tick rate of 60 means each farm will
+	-- update once per second, and a tick rate of 120 means each farm will update
+	-- every 2 seconds
+	
+	local fieldsPerGroup = math.ceil(#global.tf.farms / constFarmTickRate)
+	
+	local start_idx = (group_num - 1) * fieldsPerGroup + 1
+	local end_idx = math.min(start_idx + fieldsPerGroup - 1, #global.tf.farms)
+	
+	-- when there are more groups than farms, we need to skip groups that don't have any farms
+	if #global.tf.farms < start_idx then
+		return 0
+	end
+	
+	for i = start_idx, end_idx do
+		
+		local farmInfo = global.tf.farms[i]
+		if farmInfo ~= nil then
+			if not farmInfo.entity.valid then
+				debug_print("farm did not have a valid entity")
+				table.remove(global.tf.farms, i)
+				i = i - 1
+			elseif farmInfo.isActive then
+				
+				local seed = get_seed_from_farm(farmInfo)
+				
+				
+				if seed ~= nil then
+					local plantPos = farmInfo.next_planting_position(farmInfo)
+					local surface = farmInfo.entity.surface
+					
+					if surface.can_place_entity({name = seed.name, position = plantPos}) then
+						local treeEntity = surface.create_entity({
+							name = seed.name, 
+							position = plantPos, 
+							force = farmInfo.entity.force
+						})
+						
+						plant_tree(treeEntity, seed.plantGroup, farmInfo)
+						consume_seed_from_farm(farmInfo, seed.name)
+					end
+				end
+				
+				-- TODO horribly inneficient when output is full and isn't being emptied
+				if farmInfo.entity.name == constFarmName then
+					harvest_trees_within_farm_area(farmInfo)
+				end
+				
+			end
+		end
+		
+	end
+
+	return end_idx - start_idx + 1
 end
 
-function mk2CancelDecontruction(field)
-  local fieldPos = {x = field.entity.position.x, y = field.entity.position.y}
-  local areaPosMin = {x = fieldPos.x - field.areaRadius - 1, y = fieldPos.y - field.areaRadius - 1}
-  local areaPosMax = {x = fieldPos.x + field.areaRadius + 1, y = fieldPos.y + field.areaRadius + 1}
-  local tmpEntities = game.get_surface("nauvis").find_entities_filtered{area = {areaPosMin, areaPosMax}, type = "tree"}
-
-  if #tmpEntities > 0 then
-    for i = 1, #tmpEntities do
-      for _, seedType in pairs(global.tf.seedPrototypes) do
-        if (tmpEntities[i].name == seedType.states[#seedType.states]) and (tmpEntities[i].to_be_deconstructed(game.forces.player) == true) then
-          tmpEntities[i].cancel_deconstruction(game.forces.player)
-        end
-      end
-    end
-  end
+function get_seed_from_farm(farmInfo)
+	for groupType, group in pairs(global.tf.plantGroups) do
+		local invAmount = farmInfo.entity.get_inventory(1).get_item_count(group.states[1])
+		if invAmount > 0 then
+			return {name = group.states[1], plantGroup = group}
+		end
+	end
 end
 
-function mk2MarkDeconstruction(field)
-  local fieldPos = {x = field.entity.position.x, y = field.entity.position.y}
-  local areaPosMin = {x = fieldPos.x - field.areaRadius - 1, y = fieldPos.y - field.areaRadius - 1}
-  local areaPosMax = {x = fieldPos.x + field.areaRadius + 1, y = fieldPos.y + field.areaRadius + 1}
-  local tmpEntities = game.get_surface("nauvis").find_entities_filtered{area = {areaPosMin, areaPosMax}, type = "tree"}
-
-  if #tmpEntities > 0 then
-    for i = 1, #tmpEntities do
-      for _, seedType in pairs(global.tf.seedPrototypes) do
-        if (tmpEntities[i].name == seedType.states[#seedType.states]) and (tmpEntities[i].to_be_deconstructed(game.forces.player) == false) then
-          tmpEntities[i].order_deconstruction(game.forces.player)
-        end
-      end
-    end
-  end
+function consume_seed_from_farm(farmInfo, seedName)
+	farmInfo.entity.get_inventory(1).remove({name = seedName, count = 1})
 end
+
+function plant_tree(treeEntity, plantGroup, treeFarmInfo)
+	local efficiency = calc_efficiency(treeEntity, plantGroup, treeFarmInfo)
+	local treeData =
+	{
+		entity = treeEntity,
+		state = 1,
+		efficiency = efficiency,
+		farmInfo = treeFarmInfo
+	}
+
+	local nextTick = game.tick + math.ceil((math.random() * plantGroup.randomGrowingTime + plantGroup.basicGrowingTime) / treeData.efficiency)
+	place_tree_into_list(treeData, nextTick)
+end
+
+function calc_efficiency(treeEntity, plantGroup, farmInfo)
+
+	local position = treeEntity.position
+	local tileName = treeEntity.surface.get_tile(position.x, position.y).name
+	local efficiency = plantGroup.efficiency[tileName] or plantGroup.efficiency.other
+	
+	if farmInfo == nil then
+		return efficiency
+	end
+	
+	
+	-- if the field has no available fertilizer and the fertilizer prototype is defined
+	-- then try to get some fertilizer from inventory
+	if farmInfo.fertilizerAmount <= 0 and global.tf.isFertilizerAvailable then
+		local inv = nil
+		if farmInfo.entity.name == constFarmName then
+			inv = farmInfo.entity.get_inventory(2)
+		else
+			inv = farmInfo.entity.get_inventory(1)
+		end
+	
+		-- consume fertilizer from the farm
+		local invAmount = inv.get_item_count(constFertilizerName)
+		if invAmount > 0 and inv.remove({ name = constFertilizerName, count = 1 }) then
+			farmInfo.fertilizerAmount = 10
+		end
+		
+	end
+
+	if farmInfo.fertilizerAmount > 0 then
+		efficiency = efficiency + plantGroup.fertilizerBoost
+		farmInfo.fertilizerAmount = farmInfo.fertilizerAmount - 1
+	end
+
+	return efficiency
+end
+
+
+--
+-- plant maintainence - adding to the maintainence list and growing them as needed
+--
+
+function tick_trees(tick)
+	if global.tf.trees[tick] == nil then
+		return
+	end
+
+	for k, treeInfo in pairs(global.tf.trees[tick]) do
+		if treeInfo.entity.valid then
+			local plantGroup = plantNameToPlantGroup[treeInfo.entity.name]
+			
+			-- NOTE the plantGroup ~= nil check handles cases where the plant is from another mod, but that
+			-- mod was disabled and the game was loaded from a save that had the mod enabled
+			if plantGroup ~= nil then
+				-- the math.min() handles cases where a plant mod decides to change the number of states a plant has
+				local newState = math.min(treeInfo.state + 1, #plantGroup.states)
+				
+				local newTree = treeInfo.entity.surface.create_entity({
+					name = plantGroup.states[newState], 
+					position = treeInfo.entity.position,
+					force = treeInfo.entity.force
+				})
+				treeInfo.entity.destroy()
+				treeInfo.entity = newTree
+				treeInfo.state = newState
+				
+				if newState < #plantGroup.states then
+					local nextTick = tick + math.ceil((math.random() * plantGroup.randomGrowingTime + plantGroup.basicGrowingTime) / treeInfo.efficiency)
+					place_tree_into_list(treeInfo, nextTick)
+				else
+					on_tree_is_ready_to_harvest(treeInfo)
+				end
+			end
+		end
+	end
+
+	global.tf.trees[tick] = nil
+
+end
+
+function on_tree_is_ready_to_harvest(treeInfo)
+
+	local farmInfo = treeInfo.farmInfo
+	if farmInfo == nil then
+		-- the tree was planted manually, so we have to look for a farm
+		-- we can do this the fast way by looking for any farm in the max radius a farm can have
+		-- or we can do this the slow (and accurate) way by looking through every farm in the game
+		-- and checking whether the tree is inside the farm's boundaries
+		
+		-- looks through all of the known farms for one that is in range of the tree
+		local treePos = treeInfo.entity.position
+		for k, fi in pairs(global.tf.farms) do
+			if fi.entity.valid then
+				local boundary = fi.get_farm_boundaries(fi)
+				
+				if treePos.x >= boundary.upperLeft.x and treePos.x <= boundary.lowerRight.x and treePos.y >= boundary.upperLeft.y and treePos.y <= boundary.lowerRight.y then
+					farmInfo = fi
+					break
+				end
+			end
+		end
+	end
+	
+	if farmInfo ~= nil and farmInfo.entity ~= nil and farmInfo.entity.valid then
+		farmInfo.harvest_tree(farmInfo, treeInfo.entity)
+	end
+end
+
+
+function place_tree_into_list(treeInfo, tick)
+	if global.tf.trees[tick] == nil then
+		global.tf.trees[tick] = {}
+	end
+	
+	table.insert(global.tf.trees[tick], treeInfo)
+end
+
+
+
+--
+-- event registrations
+--
+
+script.on_init(function()
+	initialize()
+	
+	for pIndex, _ in ipairs(game.players) do
+		clear_player_data(pIndex)
+	end
+
+end)
+script.on_load(when_saved_game_loaded)
+script.on_configuration_changed(when_loaded_mods_changed)
+
+script.on_event(defines.events.on_player_created, function(event)
+	clear_player_data(event.player_index)
+end)
+
+script.on_event(defines.events.on_tick, function(event) 
+	
+	local total_trees = 0
+	if global.tf.trees[event.tick] ~= nil then 
+		total_trees = #global.tf.trees[event.tick] 
+	end
+	
+	tick_trees(event.tick)
+	
+	if global.tf.counter == 0 then
+		global.tf.counter = constFarmTickRate
+	end
+	
+	local num_fields = tick_farms(global.tf.counter)
+	global.tf.counter = global.tf.counter - 1
+	
+	--debug_print(".                                                                           tick: " .. event.tick .. " fields: " .. num_fields .. " trees: " .. total_trees)
+end)
+
+script.on_event(defines.events.on_built_entity, event_built_entity)
+script.on_event(defines.events.on_robot_built_entity, event_built_entity)
+script.on_event(defines.events.on_gui_click, event_handle_configuration_gui_click)
+
+script.on_event(defines.events.on_put_item, function(event)
+	-- on_put_item is called before the item is built (before on_built_item)
+	-- so we are using this event to open the configuration gui when
+	-- a player clicks on a built treefarm mk2 w/ the treefarm mk2 item in their hand
+	local player = game.players[event.player_index]
+	
+	if player ~= nil and player.selected ~= nil and player.selected.name == constRobotFarmName then
+	
+		for farmIndex, farmInfo in ipairs(global.tf.farms) do
+			if farmInfo.entity.valid and player.selected == farmInfo.entity then
+				construct_farm_configuration_gui(event.player_index, farmInfo)
+				return
+			end
+		end
+	
+	end
+end)

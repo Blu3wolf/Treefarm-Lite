@@ -2,95 +2,36 @@ module(..., package.seeall)
 
 remote.add_interface("treefarm_interface",
 {
-  addSeed = function(seedInfo)
-    if global.tf == nil then
-      return "treefarm isn't initialized yet. Save the game and reload it."
-    end
+	addSeed = function(seedInfo)
+		
+		if seedInfo.name == nil then return "name not defined" end
+		if seedInfo.states == nil then return "growing states not defined" end
+		if seedInfo.efficiency == nil then return "efficiency not defined" end
+		if seedInfo.basicGrowingTime == nil or seedInfo.basicGrowingTime <= 0 then return "basicGrowingTime not defined" end
+		if seedInfo.randomGrowingTime == nil or seedInfo.randomGrowingTime <= 0 then return "randomGrowingTime not defined" end
+		if seedInfo.fertilizerBoost == nil or seedInfo.fertilizerBoost <= 0 then return "fertilizerBoost not defined" end
+		
+		local newPlantGroupList = {}
+		newPlantGroupList[seedInfo.name] = seedInfo
+		
+		register_plant_groups( newPlantGroupList )
+	end,
 
-    if global.tf.seedPrototypes[seedInfo.name] == nil then
-      global.tf.seedPrototypes[seedInfo.name] = {}
-      if seedInfo.states ~= nil then
-        global.tf.seedPrototypes[seedInfo.name].states = seedInfo.states
-      else
-        return "growing states not defined"
-      end
-      if seedInfo.output ~= nil then
-        global.tf.seedPrototypes[seedInfo.name].output = seedInfo.output
-      else
-        return "result not defined"
-      end
-      if seedInfo.efficiency then
-        global.tf.seedPrototypes[seedInfo.name].efficiency = seedInfo.efficiency
-        if global.tf.seedPrototypes[seedInfo.name].efficiency.other == 0 then
-          global.tf.seedPrototypes[seedInfo.name].efficiency.other = 0.01
-        end
-      else
-        return "efficiency not defined"
-      end
-      if seedInfo.basicGrowingTime ~= nil then
-        global.tf.seedPrototypes[seedInfo.name].basicGrowingTime = seedInfo.basicGrowingTime
-      else
-        return "basicGrowingTime not defined"
-      end
-      if seedInfo.randomGrowingTime ~= nil then     
-        global.tf.seedPrototypes[seedInfo.name].randomGrowingTime = seedInfo.randomGrowingTime
-      else
-        return "randomGrowingTime not defined"
-      end
-      if seedInfo.fertilizerBoost ~= nil then
-        global.tf.seedPrototypes[seedInfo.name].fertilizerBoost = seedInfo.fertilizerBoost
-      else
-        return "fertilizerBoost not defined"
-      end
-      
-      if seedTypeLookUpTable ~= nil then
-        seedTypeLookUpTable = {}
-      end
-      populateSeedTypeLookUpTable()
-    else
-      return "seed type already present"
-    end
-  end,
+	readSeed = function(seedName)
+		return global.tf.plantGroups[seedName]
+	end,
 
-  readSeed = function(seedName)
-    return global.tf.seedPrototypes[seedName]
-  end,
-
-  getSeedTypesData = function()
-    return global.tf.seedPrototypes
-  end,
+	getSeedTypesData = function()
+		return global.tf.plantGroups
+	end,
 
 
-  getNumGrowing = function()
-    return #global.tf.growing
-  end,
-
-  getFirstPlantTick = function()
-    return global.tf.growing[1].nextUpdate
-  end,
-
-  removeAllPlants = function()
-    for _, plant in ipairs(global.tf.growing) do
-      if plant.entity.valid then
-        plant.entity.destroy()
-      end
-    end
-
-    while (#global.tf.growing > 0) do
-      table.remove(global.tf.growing)
-    end
-  end,
-
-  clearGUIs = function()
-    for pIndex, player in ipairs(game.players) do
-      if player.gui.center.fieldmk2Root ~= nil then
-        player.gui.center.fieldmk2Root.destroy()
-      end
-      global.tf.playersData[pIndex].guiOpened = false
-      destroyOverlay(pIndex)
-    end
-  end,
-
+	clearGUIs = function()
+		for pIndex, player in ipairs(game.players) do
+			clear_farm_configuration_gui(pIndex)
+		end
+	end,
+	
   gimmeStuff1 = function(pIndex)
     if pIndex == 0 then
       for i,_ in ipairs(game.players) do
@@ -182,17 +123,27 @@ remote.add_interface("treefarm_interface",
     local seed_type = "tf-germling"
     local x_offset = origin_position.x or origin_position[1]
     local y_offset = origin_position.y or origin_position[2]
-    local stack_size = num_seeds or game.get_item_prototype ( seed_type ).stack_size
+    local seed_quantity = num_seeds or game.get_item_prototype ( seed_type ).stack_size
+	local fertilizer_quantity = 0
+	if game.item_prototypes["tf-fertilizer"] ~= nil then
+		fertilizer_quantity = game.get_item_prototype ( "tf-fertilizer" ).stack_size
+	end
     
     for i = -coordinate + x_offset + 10, coordinate + x_offset - 10, field_size do 
         for j = -coordinate + y_offset + 10, coordinate + y_offset - 10, field_size do 
             
-            local ent = game.player.surface.create_entity({name=treefarm_type, position= {i,j}, force=game.forces.player })
-            if (stack_size > 0) then
-                ent.insert({name=seed_type, count=stack_size})
+            local ent = game.player.surface.create_entity({name=treefarm_type, position= {j,i}, force=game.forces.player })
+            if (seed_quantity > 0) then
+                ent.insert({name=seed_type, count=seed_quantity})
+				
+				if fertilizer_quantity > 0 then
+					ent.insert({name="tf-fertilizer", count=fertilizer_quantity})
+				end
             end
+			
+			
                 
-            test_addFieldMk2(ent)
+            on_farm_created(ent)
             
             num_treefarms = num_treefarms - 1
             if (num_treefarms == 0) then
@@ -202,8 +153,20 @@ remote.add_interface("treefarm_interface",
         end 
     end
     
-  end
+  end,
   
+  test_deconstruct_marked_trees = function(num_treefarms)
+	local field_size = 20
+	local treefarms_per_side = math.ceil(math.sqrt(num_treefarms))
+	local coordinate = treefarms_per_side * field_size / 2
+
+	for k, v in pairs(game.player.surface.find_entities_filtered({type="tree", area={ {-coordinate, -coordinate}, {coordinate,coordinate}} })) do 
+		if v.to_be_deconstructed(game.player.force) then 
+			v.destroy() 
+		end 
+	end
+	
+  end
   
  })
 
