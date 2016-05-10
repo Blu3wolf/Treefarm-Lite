@@ -504,9 +504,10 @@ function mk2_next_planting_position(farmInfoSelf)
 	return farmInfoSelf.private_current_planting_pos
 end
 
+
 function mk1_harvest_tree(farmInfoSelf, treeEntity)
 
-	local minable = game.entity_prototypes[treeEntity.name].mineable_properties
+	local minable = treeEntity.prototype.mineable_properties
 	if minable == nil or not minable.minable then
 		return false -- can't harvest something that isn't minable
 	end
@@ -515,21 +516,31 @@ function mk1_harvest_tree(farmInfoSelf, treeEntity)
 	if inventory ~= nil then
 		-- is there space for all the mining products in inventory?
 		local can_harvest = true
+		local resultItemStacks = {}
+		
 		for idx, v in ipairs(minable.products) do
+			local item_count = 0
+			if v.amount ~= nil then
+				item_count = v.amount
+			elseif math.random() < v.probability then
+				item_count = math.random(v.amount_min, v.amount_max)
+			end
+		
 			local stack_size = game.item_prototypes[v.name].stack_size
-			local item_count = v.amount or v.amount_min or 0
+			
 			-- have to check that the total will be less than a single stack b/c can_insert() 
 			-- will return true if only some of the items can be added to inventory
 			if inventory.get_item_count(v.name) + item_count > stack_size then
 				can_harvest = false
 				break;
 			end
+			
+			table.insert(resultItemStacks, { name = v.name, count = item_count })
 		end
 	
-		if can_harvest then
-			for idx, v in ipairs(minable.products) do
-				local item_count = v.amount or v.amount_min or 0
-				inventory.insert({ name = v.name, count = item_count })
+		if can_harvest and #inventory >= #resultItemStacks then
+			for idx, simpleItemStack in ipairs(resultItemStacks) do
+				inventory.insert(simpleItemStack)
 			end
 			
 			treeEntity.destroy()
