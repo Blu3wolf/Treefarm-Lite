@@ -78,9 +78,12 @@ end
 function data_migration_to_v4()
 
 	-- convert field data
-	--global.tf.fieldsToMaintain = nil
-	--global.tf.fieldmk2sToMaintain = nil
+	global.tf.fieldsToMaintain = nil
+	global.tf.fieldmk2sToMaintain = nil
 	global.tf.farms = {}
+	
+	-- set to empty list in case there are no fields planted
+	global.tf.fieldList = global.tf.fieldList or {}
 	for idx, field in ipairs(global.tf.fieldList) do
 		if field.entity.valid then
 			local farmInfo = create_farm_info_for(field.entity)
@@ -98,10 +101,13 @@ function data_migration_to_v4()
 			table.insert(global.tf.farms, farmInfo)
 		end
 	end
-	--global.tf.fieldList = nil
+	global.tf.fieldList = nil
 	
 	-- convert tree data
 	global.tf.trees = {}
+	
+	-- set to empty list in case there are no trees growing
+	global.tf.treesToGrow = global.tf.treesToGrow or {}
 	for tick, list in pairs(global.tf.treesToGrow) do
 		-- for each record, the associated farm will be found when the tree is ready to be harvested
 		global.tf.trees[tick] = list
@@ -115,7 +121,8 @@ function data_migration_to_v4()
 	global.tf.seedPrototypes = nil
 	
 	-- convert player data and clear all open guis
-	global.tf.playerData = global.tf.playersData or {}
+	global.tf.playersData = global.tf.playersData or {}
+	global.tf.playerData = global.tf.playersData
 	for idx, info in ipairs(global.tf.playersData) do
 		clear_player_data(idx)
 		
@@ -503,7 +510,6 @@ function mk2_next_planting_position(farmInfoSelf)
 	
 	return farmInfoSelf.private_current_planting_pos
 end
-
 
 function mk1_harvest_tree(farmInfoSelf, treeEntity)
 
