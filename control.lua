@@ -1,7 +1,7 @@
 require "defines"
 require "interfaces"
 
-local constIsInDebug = true
+local constIsInDebug = false
 local constFertilizerName = "tf-fertilizer"
 local constRobotFarmOverlayName = "tf-fieldmk2Overlay"
 local constRobotFarmName = "tf-fieldmk2"
@@ -817,7 +817,7 @@ function tick_farms(group_num)
 		local farmInfo = global.tf.farms[i]
 		if farmInfo ~= nil then
 			if not farmInfo.entity.valid then
-				debug_print("farm did not have a valid entity")
+				--debug_print("farm did not have a valid entity")
 				table.remove(global.tf.farms, i)
 				i = i - 1
 			elseif farmInfo.isActive then
