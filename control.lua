@@ -1,7 +1,7 @@
 require "defines"
 require "interfaces"
 
-local constIsInDebug = false
+local constIsInDebug = true
 local constFertilizerName = "tf-fertilizer"
 local constRobotFarmOverlayName = "tf-fieldmk2Overlay"
 local constRobotFarmName = "tf-fieldmk2"
@@ -116,7 +116,11 @@ function data_migration_to_v4()
 	
 	-- convert seed prototypes
 	global.tf.isFertilizerAvailable = game.item_prototypes[constFertilizerName] ~= nil
-	global.tf.plantGroups = global.tf.seedPrototypes or {}
+	global.tf.seedPrototypes = global.tf.seedPrototypes or {}
+	for k,v in pairs(global.tf.seedPrototypes) do
+		global.tf.plantGroups[k] = v
+	end
+	
 	populate_seed_name_to_plant_group()
 	global.tf.seedPrototypes = nil
 	
@@ -225,8 +229,8 @@ function clear_player_data(player_index)
 	global.tf.playerData[player_index] = { farmInfoConfiguring = nil, overlayEntities = {} }
 end
 
-
 function initialize()
+	
 	-- this function is designed to be safe to call even when
 	-- the global variables are already initialized
 	global.tf = global.tf or {}
@@ -302,6 +306,7 @@ function initialize()
 end
 
 function when_saved_game_loaded()
+
 	-- the load event is fired before the loaded_mods_changed event
 	-- so for saved games before v4, we need to make sure the plantGroups table exists
 	
@@ -311,6 +316,7 @@ function when_saved_game_loaded()
 end
 
 function when_loaded_mods_changed(data)
+
 	-- remove plantGroups that were part of another mod
 	-- TODO does this need to go here
 	-- TODO make sure this works
@@ -324,8 +330,7 @@ function when_loaded_mods_changed(data)
 		return
 	end
 	
-	-- for v4 and up, initial is always safe to call - it will not destroy anything that already exists
-	initialize()
+	-- initialize has already been called - either by the saved_game_loaded or by init
 	if data.mod_changes["Treefarm-Lite"].old_version == nil then
 		return
 	end
@@ -839,46 +844,48 @@ function tick_farms(group_num)
 		return 0
 	end
 	
+	local num_farms_ticked = 0
 	for i = start_idx, end_idx do
+		num_farms_ticked = num_farms_ticked + 1
 		
 		local farmInfo = global.tf.farms[i]
-		if farmInfo ~= nil then
-			if not farmInfo.entity.valid then
-				--debug_print("farm did not have a valid entity")
-				table.remove(global.tf.farms, i)
-				i = i - 1
-			elseif farmInfo.isActive then
-				
-				local seed = get_seed_from_farm(farmInfo)
-				
-				
-				if seed ~= nil then
-					local plantPos = farmInfo.next_planting_position(farmInfo)
-					local surface = farmInfo.entity.surface
-					
-					if surface.can_place_entity({name = seed.name, position = plantPos}) then
-						local treeEntity = surface.create_entity({
-							name = seed.name, 
-							position = plantPos, 
-							force = farmInfo.entity.force
-						})
-						
-						plant_tree(treeEntity, seed.plantGroup, farmInfo)
-						consume_seed_from_farm(farmInfo, seed.name)
-					end
-				end
-				
-				-- TODO horribly inneficient when output is full and isn't being emptied
-				if farmInfo.entity.name == constFarmName then
-					harvest_trees_within_farm_area(farmInfo)
-				end
-				
-			end
-		end
+		if farmInfo == nil or not farmInfo.entity.valid then
 		
+			--debug_print("farm did not have a valid entity")
+			table.remove(global.tf.farms, i)
+			i = i - 1
+			
+		elseif farmInfo ~= nil and farmInfo.isActive then
+			local seed = get_seed_from_farm(farmInfo)
+			
+			
+			if seed ~= nil then
+				
+				local plantPos = farmInfo.next_planting_position(farmInfo)
+				local surface = farmInfo.entity.surface
+				
+				if surface.can_place_entity({name = seed.name, position = plantPos}) then
+					
+					local treeEntity = surface.create_entity({
+						name = seed.name, 
+						position = plantPos, 
+						force = farmInfo.entity.force
+					})
+					
+					plant_tree(treeEntity, seed.plantGroup, farmInfo)
+					consume_seed_from_farm(farmInfo, seed.name)
+				end
+			end
+			
+			-- TODO horribly inneficient when output is full and isn't being emptied
+			if farmInfo.entity.name == constFarmName then
+				harvest_trees_within_farm_area(farmInfo)
+			end
+		
+		end
 	end
 
-	return end_idx - start_idx + 1
+	return num_farms_ticked
 end
 
 function get_seed_from_farm(farmInfo)
