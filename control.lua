@@ -654,7 +654,8 @@ end
 function event_handle_configuration_gui_click(event)
 
 	local playerInfo = global.tf.playerData[event.player_index]
-	if playerInfo.farmInfoConfiguring == nil then
+	if playerInfo == nil or playerInfo.farmInfoConfiguring == nil then
+		-- player will sometimes be nil if the gui does not belong to any player e.g. the TestMode mod
 		-- not configuring anything so there is nothing to do
 		return
 	end
