@@ -591,13 +591,19 @@ function harvest_trees_within_farm_area(farmInfo)
 
 	-- harvest any mature trees within the field's boundaries
 	local boundary = farmInfo.get_farm_boundaries(farmInfo)
-	
+	local unharvestable = { }
+  
 	for _, treeEntity in pairs(farmInfo.entity.surface.find_entities_filtered( {area = { boundary.upperLeft, boundary.lowerRight }, type = "tree"} )) do
 		if immaturePlantNames[treeEntity.name] == nil then
-			farmInfo.harvest_tree(farmInfo, treeEntity)
+			if unharvestable[treeEntity.name] == nil then
+				local harvested = farmInfo.harvest_tree(farmInfo, treeEntity)
+				if not harvested then
+					unharvestable[treeEntity.name] = true
+				end
+			end
 		end
 	end
-
+  
 end
 
 function unharvest_trees_within_farm_area(farmInfo)
