@@ -588,7 +588,16 @@ function mk2_unharvest_tree(farmInfoSelf, treeEntity)
 end
 
 function harvest_trees_within_farm_area(farmInfo)
-
+	-- If we can't stuff into the output, there isn't any point checking each tree
+	for name,number in pairs(farmInfo.entity.get_output_inventory().get_contents()) do
+		local stack_size = game.item_prototypes[name].stack_size
+		
+		-- TODO: don't hardcode this
+		if (number > stack_size - 10) then
+			return
+		end
+	end
+	
 	-- harvest any mature trees within the field's boundaries
 	local boundary = farmInfo.get_farm_boundaries(farmInfo)
 	
@@ -877,7 +886,6 @@ function tick_farms(group_num)
 				end
 			end
 			
-			-- TODO horribly inneficient when output is full and isn't being emptied
 			if farmInfo.entity.name == constFarmName then
 				harvest_trees_within_farm_area(farmInfo)
 			end
