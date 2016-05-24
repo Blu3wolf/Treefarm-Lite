@@ -240,6 +240,9 @@ function initialize()
 	global.tf.counter = global.tf.counter or 0
 	global.tf.playerData = global.tf.playerData or {}
 	
+	-- we want to clear this on load in case changing a mod has changed a stack size
+	global.tf.knownStackSizes = {}
+	
 	if game ~= nil then
 		global.tf.isFertilizerAvailable = game.item_prototypes[constFertilizerName] ~= nil
 	end
@@ -590,7 +593,11 @@ end
 function harvest_trees_within_farm_area(farmInfo)
 	-- If we can't stuff into the output, there isn't any point checking each tree
 	for name,number in pairs(farmInfo.entity.get_output_inventory().get_contents()) do
-		local stack_size = game.item_prototypes[name].stack_size
+		local stack_size = global.tf.knownStackSizes[name]
+		if (nil == stack_size) then
+			stack_size = game.item_prototypes[name].stack_size
+			global.tf.knownStackSizes[name] = stack_size
+		end
 		
 		-- TODO: don't hardcode this
 		if (number > stack_size - 10) then
