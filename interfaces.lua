@@ -95,7 +95,7 @@ remote.add_interface("treefarm_interface",
 		for i = -coordinate + x_offset + 10, coordinate + x_offset - 10, field_size do 
 			for j = -coordinate + y_offset + 10, coordinate + y_offset - 10, field_size do 
 				
-				local ent = game.player.surface.create_entity({name=treefarm_type, position= {j,i}, force=game.forces.player })
+				local ent = game.player.surface.create_entity({name=treefarm_type, position= {j,i}, force=game.player.force })
 				if (seed_quantity > 0) then
 					ent.insert({name=seed_type, count=seed_quantity})
 					
@@ -127,6 +127,75 @@ remote.add_interface("treefarm_interface",
 			end 
 		end
 		
+	end,
+	
+	test_create_mk1_treefarms = function(num_treefarms, gather_harvested, origin_position, num_seeds, surface)
+	
+		if gather_harvested == nil then
+			gather_harvested = true
+		end
+		-- if no origin is given then center on the center of the world
+		origin_position = origin_position or { 0,0 }
+		
+		-- default to the player's surface
+		surface = surface or game.player.surface
+		
+		local treefarm_type = "tf-field" -- treefarm_type or "tf-fieldmk2"
+
+		local field_size = 20 -- it's actually 8 by 7, with the placement location in the upper-left corner
+		local treefarms_per_side = math.ceil(math.sqrt(num_treefarms))
+		local coordinate = treefarms_per_side * field_size / 2
+		
+		local seed_type = "tf-germling"
+		local x_offset = origin_position.x or origin_position[1]
+		local y_offset = origin_position.y or origin_position[2]
+		local seed_quantity = num_seeds or game.get_item_prototype ( seed_type ).stack_size
+		local fertilizer_quantity = 0
+		if game.item_prototypes["tf-fertilizer"] ~= nil then
+			fertilizer_quantity = game.get_item_prototype ( "tf-fertilizer" ).stack_size
+		end
+		
+		for i = -coordinate + x_offset + 10, coordinate + x_offset - 10, field_size do 
+			for j = -coordinate + y_offset + 10, coordinate + y_offset - 10, field_size do 
+				
+				local ent = game.player.surface.create_entity({name=treefarm_type, position= {j,i}, force=game.player.force })
+				if (seed_quantity > 0) then
+					ent.insert({name=seed_type, count=seed_quantity})
+					
+					if fertilizer_quantity > 0 then
+						ent.insert({name="tf-fertilizer", count=fertilizer_quantity})
+					end
+				end
+				
+				on_farm_created(ent)
+				
+				if gather_harvested then
+					-- create fast inserter to remove harvested trees
+					game.player.surface.create_entity({name="fast-inserter", position={j,i+1}, force = game.player.force, direction=defines.direction.north})
+					game.player.surface.create_entity({name="fast-inserter", position={j,i+3}, force = game.player.force, direction=defines.direction.north})
+					game.player.surface.create_entity({name="fast-inserter", position={j,i+5}, force = game.player.force, direction=defines.direction.north})
+					-- create storage chest to hold harvested trees
+					game.player.surface.create_entity({name="steel-chest", position={j,i+2}, force = game.player.force})
+					game.player.surface.create_entity({name="steel-chest", position={j,i+4}, force = game.player.force})
+					game.player.surface.create_entity({name="steel-chest", position={j,i+6}, force = game.player.force})
+					-- power for the inserters
+					game.player.surface.create_entity({name="medium-electric-pole", position={j-1,i+3}, force = game.player.force})
+					
+					game.player.surface.create_entity({name="solar-panel", position={j-2,i+1}, force = game.player.force})
+					game.player.surface.create_entity({name="solar-panel", position={j-5,i+1}, force = game.player.force})
+					
+					game.player.surface.create_entity({name="solar-panel", position={j-2,i+5}, force = game.player.force})
+					game.player.surface.create_entity({name="solar-panel", position={j-5,i+5}, force = game.player.force})
+				end
+				
+				num_treefarms = num_treefarms - 1
+				if (num_treefarms == 0) then
+					return
+				end
+				
+			end 
+		end
+	
 	end
 
  })
