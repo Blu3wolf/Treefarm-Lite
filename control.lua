@@ -366,7 +366,6 @@ end
 -- creating and managing farms
 --
 
-
 function event_built_entity(event)
 
 	if event.created_entity.name == constFarmName then
@@ -377,8 +376,8 @@ function event_built_entity(event)
 		else
 			local drop_item_on_ground = true -- robots will drop the item on the group, b/c they can't do anything else
 			
-			-- we won't have a player if this farm was built via robots by blueprint
-			if event.name == "on_built_entity" then
+			-- we won't have a player if this farm was built via robots by blueprint 
+			if event.name == defines.events.on_built_entity then
 				local player = game.players[event.player_index]
 				
 				-- add the item back to the player's inventory
@@ -392,6 +391,12 @@ function event_built_entity(event)
 			
 			if drop_item_on_ground then
 				event.created_entity.surface.spill_item_stack(event.created_entity.position, { name=constFarmName, count=1 });
+				
+				-- tell everyone on the same force that the building failed
+				for _, plyr in pairs(event.created_entity.force.players) do
+					plyr.print({"robot_buildingFail", event.created_entity.position.x, event.created_entity.position.y })
+				end
+				
 			end
 			
 			event.created_entity.destroy()
