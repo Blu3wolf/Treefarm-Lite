@@ -27,7 +27,7 @@ If you cannot reproduce the bug, then describe what happens when the bug occurs,
 * Report UPS, FPS, and the milliseconds Treefarm takes to run per tick (the number next to the mod name in the debug F5 view)
 * Slower, consistent performance w/o lag spikes is preferable to faster performance w/ lag spikes
 * Measuring Performance
-  * Download and install the Test Mode mod for Factorio
+  * Download and install the Test Mode mod for Factorio (found here: https://forums.factorio.com/viewtopic.php?f=46&t=2842)
   * Start a new Sandbox game
   * Explore a significant chunk of the map to force Factorio to generate the land are you will need
   * Set up the world for 2500 treefarms by running the following command in the console (accessable through '~')
