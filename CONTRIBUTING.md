@@ -9,6 +9,7 @@ If reporting a bug, make sure you include the following:
 * All steps required to reproduce the bug
 * What happens when the bug occurs
 * what you expected to happen instead of the bug
+
 If you cannot reproduce the bug, then describe what happens when the bug occurs, and when it seems most likely to occur. Precision and detail count!
 
 # Making changes
