@@ -647,7 +647,17 @@ function can_place_mk1_farm(farmInfo)
 	local boundary = farmInfo.get_farm_boundaries(farmInfo)
 	for k, ent in ipairs( surface.find_entities ({ boundary.upperLeft, boundary.lowerRight })  ) do
 		-- only players and trees are allowed to occupy the same space as a mk1 field
-		if ent.name ~= "player" and ent.type ~= "tree" and ent.type ~= "decorative" then
+		debug_print(ent.name .. " " .. ent.type)
+		if ent.name ~= "player" 
+			and ent.type ~= "tree" 
+			and ent.type ~= "decorative"
+			and ent.type ~= "smoke"
+			and ent.type ~= "explosion"
+			and ent.type ~= "corpse"
+			and ent.type ~= "particle"
+			and ent.type ~= "leaf-particle"
+			and ent.type ~= "resource"
+			then
 			return false
 		end
 	end
