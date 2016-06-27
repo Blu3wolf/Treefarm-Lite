@@ -183,9 +183,9 @@ data:extend
     {
       filename = "__Treefarm-Lite__/graphics/entities/fieldmk2/fieldmk2.png",
       priority = "extra-high",
-      width = 70,
-      height = 170,
-      shift = {0.0, -1.5}
+      width = 128,
+      height = 175,
+      shift = {0.9375, -1.3125}
     }
   },
 
