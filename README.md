@@ -5,6 +5,19 @@ This mod adds treefarms, coal-processing and a production-chain for organic plas
 
 Treefarm is originally by drs9999 and is maintained by myself, Blu3wolf. Treefarm was released under a permissive license, and under that license this version of Treefarm is released under the GPLv3. This newer Treefarm has been updated to run on newer Factorio versions, and folds in performance enhancements from Rseding91 and StephenWard. Much thanks to them for their work on this newer faster version!
 
+
+##Contributors
+* Owner - drs9999
+* Owner - Bill 'Blu3wolf' Teale
+* Rseding91
+* StephenWard
+* exsnowcat 
+* MattMcMullan
+* Zanthras
+* Guillaume
+
+
+##License
 Treefarm-Lite
 Copyright (C) 2016  drs, Bill 'Blu3wolf' Teale
 
