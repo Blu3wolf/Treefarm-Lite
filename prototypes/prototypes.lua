@@ -173,7 +173,7 @@ data:extend
     order = "c[fieldmk2]",
     max_health = 100,
     icon = "__Treefarm-Lite__/graphics/icons/fieldmk2.png",
-    flags = {"placeable-player", "player-creation"},
+    flags = {"placeable-neutral", "placeable-player", "player-creation"},
     minable = {hardness = 0.2, mining_time = 1, result = "tf-fieldmk2"},
     vehicle_impact_sound =  { filename = "__base__/sound/car-metal-impact.ogg", volume = 0.65 },
     corpse = "medium-remnants",
@@ -189,6 +189,44 @@ data:extend
       height = 175,
       shift = {0.9375, -1.3125}
     }
+    -- animation =
+    -- {
+      -- north =
+      -- {
+        -- filename = "__Treefarm-Lite__/graphics/entities/fieldmk2/field-2.png",
+        -- width = 314,
+        -- height = 270,
+        -- frame_count = 1,
+        -- shift = {0.9375, -1.3125}
+      -- },
+      -- east =
+      -- {
+        -- filename = "__Treefarm-Lite__/graphics/entities/fieldmk2/field-2.png",
+        -- x = 328,
+        -- width = 278,
+        -- height = 308,
+        -- frame_count = 1,
+        -- shift = {0.9375, -1.3125}
+      -- },
+      -- south =
+      -- {
+        -- filename = "__Treefarm-Lite__/graphics/entities/fieldmk2/field-2.png",
+        -- x = 623,
+        -- width = 310,
+        -- height = 270,
+        -- frame_count = 1,
+        -- shift = {0.9375, -1.3125}
+      -- },
+      -- west =
+      -- {
+        -- filename = "__Treefarm-Lite__/graphics/entities/fieldmk2/field-2.png",
+        -- x = 943,
+        -- width = 278,
+        -- height = 308,
+        -- frame_count = 1,
+        -- shift = {0.9375, -1.3125}
+      -- }
+    -- }
   },
 
 
