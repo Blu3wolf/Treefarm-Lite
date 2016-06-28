@@ -173,11 +173,13 @@ data:extend
     order = "c[fieldmk2]",
     max_health = 100,
     icon = "__Treefarm-Lite__/graphics/icons/fieldmk2.png",
-    flags = {"placeable-neutral", "player-creation"},
-    minable = {mining_time = 1,result = "tf-fieldmk2"},
+    flags = {"placeable-player", "player-creation"},
+    minable = {hardness = 0.2, mining_time = 1, result = "tf-fieldmk2"},
+    vehicle_impact_sound =  { filename = "__base__/sound/car-metal-impact.ogg", volume = 0.65 },
+    corpse = "medium-remnants",
     collision_box = {{-0.7, -0.7}, {0.7, 0.7}},
-    selection_box = {{-1, -1}, {1, 1}},
-    drawing_box = {{-2.8, -0.5}, {0.5, 0.5}},
+    selection_box = {{-0.95, -0.55}, {1.05, 1.35}},
+    --drawing_box = {{-2.8, -0.5}, {0.5, 0.5}},
     inventory_size = 2,
     picture =
     {

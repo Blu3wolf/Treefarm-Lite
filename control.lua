@@ -895,7 +895,7 @@ function tick_farms(group_num)
 				local surface = farmInfo.entity.surface
 				
 				if surface.can_place_entity({name = seed.name, position = plantPos}) then
-					
+
 					local treeEntity = surface.create_entity({
 						name = seed.name, 
 						position = plantPos, 
