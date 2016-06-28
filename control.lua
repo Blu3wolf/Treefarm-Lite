@@ -1084,10 +1084,10 @@ end)
 
 script.on_event(defines.events.on_tick, function(event) 
 	
-	local total_trees = 0
-	if global.tf.trees[event.tick] ~= nil then 
-		total_trees = #global.tf.trees[event.tick] 
-	end
+	--local total_trees = 0
+	--if global.tf.trees[event.tick] ~= nil then 
+	--	total_trees = #global.tf.trees[event.tick] 
+	--end
 	
 	tick_trees(event.tick)
 	
