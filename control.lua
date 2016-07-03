@@ -1,4 +1,4 @@
-require "defines"
+--require "defines"
 require "interfaces"
 
 local constIsInDebug = true
