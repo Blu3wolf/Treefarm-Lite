@@ -1,4 +1,4 @@
-require "defines"
+--require "defines"
 require "interfaces"
 
 local constIsInDebug = true
@@ -240,6 +240,9 @@ function initialize()
 	global.tf.counter = global.tf.counter or 0
 	global.tf.playerData = global.tf.playerData or {}
 	
+	-- we want to clear this on load in case changing a mod has changed a stack size
+	global.tf.knownStackSizes = {}
+	
 	if game ~= nil then
 		global.tf.isFertilizerAvailable = game.item_prototypes[constFertilizerName] ~= nil
 	end
@@ -363,7 +366,6 @@ end
 -- creating and managing farms
 --
 
-
 function event_built_entity(event)
 
 	if event.created_entity.name == constFarmName then
@@ -374,8 +376,8 @@ function event_built_entity(event)
 		else
 			local drop_item_on_ground = true -- robots will drop the item on the group, b/c they can't do anything else
 			
-			-- we won't have a player if this farm was built via robots by blueprint
-			if event.name == "on_built_entity" then
+			-- we won't have a player if this farm was built via robots by blueprint 
+			if event.name == defines.events.on_built_entity then
 				local player = game.players[event.player_index]
 				
 				-- add the item back to the player's inventory
@@ -389,6 +391,12 @@ function event_built_entity(event)
 			
 			if drop_item_on_ground then
 				event.created_entity.surface.spill_item_stack(event.created_entity.position, { name=constFarmName, count=1 });
+				
+				-- tell everyone on the same force that the building failed
+				for _, plyr in pairs(event.created_entity.force.players) do
+					plyr.print({"robot_buildingFail", event.created_entity.position.x, event.created_entity.position.y })
+				end
+				
 			end
 			
 			event.created_entity.destroy()
@@ -588,7 +596,20 @@ function mk2_unharvest_tree(farmInfoSelf, treeEntity)
 end
 
 function harvest_trees_within_farm_area(farmInfo)
-
+	-- If we can't stuff into the output, there isn't any point checking each tree
+	for name,number in pairs(farmInfo.entity.get_output_inventory().get_contents()) do
+		local stack_size = global.tf.knownStackSizes[name]
+		if (nil == stack_size) then
+			stack_size = game.item_prototypes[name].stack_size
+			global.tf.knownStackSizes[name] = stack_size
+		end
+		
+		-- TODO: don't hardcode this
+		if (number > stack_size - 10) then
+			return
+		end
+	end
+	
 	-- harvest any mature trees within the field's boundaries
 	local boundary = farmInfo.get_farm_boundaries(farmInfo)
 	local unharvestable = { }
@@ -632,7 +653,16 @@ function can_place_mk1_farm(farmInfo)
 	local boundary = farmInfo.get_farm_boundaries(farmInfo)
 	for k, ent in ipairs( surface.find_entities ({ boundary.upperLeft, boundary.lowerRight })  ) do
 		-- only players and trees are allowed to occupy the same space as a mk1 field
-		if ent.name ~= "player" and ent.type ~= "tree" and ent.type ~= "decorative" then
+		if ent.name ~= "player" 
+			and ent.type ~= "tree" 
+			and ent.type ~= "decorative"
+			and ent.type ~= "smoke"
+			and ent.type ~= "explosion"
+			and ent.type ~= "corpse"
+			and ent.type ~= "particle"
+			and ent.type ~= "leaf-particle"
+			and ent.type ~= "resource"
+			then
 			return false
 		end
 	end
@@ -871,7 +901,7 @@ function tick_farms(group_num)
 				local surface = farmInfo.entity.surface
 				
 				if surface.can_place_entity({name = seed.name, position = plantPos}) then
-					
+
 					local treeEntity = surface.create_entity({
 						name = seed.name, 
 						position = plantPos, 
@@ -883,7 +913,6 @@ function tick_farms(group_num)
 				end
 			end
 			
-			-- TODO horribly inneficient when output is full and isn't being emptied
 			if farmInfo.entity.name == constFarmName then
 				harvest_trees_within_farm_area(farmInfo)
 			end
@@ -1061,10 +1090,10 @@ end)
 
 script.on_event(defines.events.on_tick, function(event) 
 	
-	local total_trees = 0
-	if global.tf.trees[event.tick] ~= nil then 
-		total_trees = #global.tf.trees[event.tick] 
-	end
+	--local total_trees = 0
+	--if global.tf.trees[event.tick] ~= nil then 
+	--	total_trees = #global.tf.trees[event.tick] 
+	--end
 	
 	tick_trees(event.tick)
 	

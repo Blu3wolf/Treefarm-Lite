@@ -94,7 +94,7 @@ data:extend
     minable = {mining_time = 1,result = "tf-field"},
     collision_box = {{-0.5,-0.5},{0.5,0.5}},
     selection_box = {{0.75,-0.50},{9.0,7.50}},
-    result_inventory_size = 1,
+    result_inventory_size = 4,
     energy_usage = "180kW",
     crafting_speed = 1,
     source_inventory_size = 1,
@@ -173,20 +173,60 @@ data:extend
     order = "c[fieldmk2]",
     max_health = 100,
     icon = "__Treefarm-Lite__/graphics/icons/fieldmk2.png",
-    flags = {"placeable-neutral", "player-creation"},
-    minable = {mining_time = 1,result = "tf-fieldmk2"},
+    flags = {"placeable-neutral", "placeable-player", "player-creation"},
+    minable = {hardness = 0.2, mining_time = 1, result = "tf-fieldmk2"},
+    vehicle_impact_sound =  { filename = "__base__/sound/car-metal-impact.ogg", volume = 0.65 },
+    corpse = "medium-remnants",
     collision_box = {{-0.7, -0.7}, {0.7, 0.7}},
-    selection_box = {{-1, -1}, {1, 1}},
-    drawing_box = {{-2.8, -0.5}, {0.5, 0.5}},
+    selection_box = {{-0.95, -0.55}, {1.05, 1.35}},
+    --drawing_box = {{-2.8, -0.5}, {0.5, 0.5}},
     inventory_size = 2,
     picture =
     {
       filename = "__Treefarm-Lite__/graphics/entities/fieldmk2/fieldmk2.png",
       priority = "extra-high",
-      width = 70,
-      height = 170,
-      shift = {0.0, -1.5}
+      width = 128,
+      height = 175,
+      shift = {0.9375, -1.3125}
     }
+    -- animation =
+    -- {
+      -- north =
+      -- {
+        -- filename = "__Treefarm-Lite__/graphics/entities/fieldmk2/field-2.png",
+        -- width = 314,
+        -- height = 270,
+        -- frame_count = 1,
+        -- shift = {0.9375, -1.3125}
+      -- },
+      -- east =
+      -- {
+        -- filename = "__Treefarm-Lite__/graphics/entities/fieldmk2/field-2.png",
+        -- x = 328,
+        -- width = 278,
+        -- height = 308,
+        -- frame_count = 1,
+        -- shift = {0.9375, -1.3125}
+      -- },
+      -- south =
+      -- {
+        -- filename = "__Treefarm-Lite__/graphics/entities/fieldmk2/field-2.png",
+        -- x = 623,
+        -- width = 310,
+        -- height = 270,
+        -- frame_count = 1,
+        -- shift = {0.9375, -1.3125}
+      -- },
+      -- west =
+      -- {
+        -- filename = "__Treefarm-Lite__/graphics/entities/fieldmk2/field-2.png",
+        -- x = 943,
+        -- width = 278,
+        -- height = 308,
+        -- frame_count = 1,
+        -- shift = {0.9375, -1.3125}
+      -- }
+    -- }
   },
 
 
