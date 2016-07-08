@@ -193,9 +193,10 @@ function when_saved_game_loaded()
 	-- the load event is fired before the loaded_mods_changed event
 	-- so for saved games before v4, we need to make sure the plantGroups table exists
 	
-	initialize()
+	-- cannot make any changes to global in this function!
+	--initialize()
 
-	populate_seed_name_to_plant_group()
+	--populate_seed_name_to_plant_group()
 end
 
 function when_loaded_mods_changed(data)
