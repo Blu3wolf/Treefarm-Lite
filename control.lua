@@ -219,27 +219,8 @@ function when_loaded_mods_changed(data)
 	end
 	
 	local previousVersion = tonumber(string.sub(data.mod_changes["Treefarm-Lite"].old_version, 3, 5))
-
-	-- NOTE: these migrations are meant to be cumulative. so to upgrade from v3 to v4, 
-	-- the v3 update must run, then the v34 update, then the 4.0 update
-	if previousVersion < 3 then
-		v3Update()
-	end
 	
-	if previousVersion < 3.5 then
-		v34Update() 
-	end
-	
-	if previousVersion == 3.4 then
-		local message = "All treefarms are broken and need to be mined and replaced!"
-		for i, player in ipairs(game.players) do
-			player.print(message)
-		end
-	end
-	
-	if previousVersion < 4.0 then
-		data_migration_to_v4()
-	end
+	-- NOTE: Migrations data from 0.12 to 0.13 is removed; updating saves from 0.12 to 0.13 is not supported. 
 end
 
 --
