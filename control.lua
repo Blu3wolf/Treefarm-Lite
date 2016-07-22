@@ -193,13 +193,16 @@ function when_saved_game_loaded()
 	-- the load event is fired before the loaded_mods_changed event
 	-- so for saved games before v4, we need to make sure the plantGroups table exists
 	
-	initialize()
-
-	populate_seed_name_to_plant_group()
+	
+	if (global.tf ~= nil and global.tf.plantGroups ~= nil) then
+		populate_seed_name_to_plant_group()
+	end
 end
 
 function when_loaded_mods_changed(data)
 
+	initialize()
+	
 	-- remove plantGroups that were part of another mod
 	-- TODO does this need to go here
 	-- TODO make sure this works
