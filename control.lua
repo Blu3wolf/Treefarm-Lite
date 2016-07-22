@@ -16,7 +16,7 @@ local immaturePlantNames
 function debug_print(message)
 
 	if game ~= nil and constIsInDebug then
-		for i, p in ipairs(game.players) do
+		for _, p in pairs(game.players) do
 			p.print(message)
 		end
 	end
@@ -927,7 +927,9 @@ function tick_farms(group_num)
 end
 
 function get_seed_from_farm(farmInfo)
+	--debug_print("looking for seeds")
 	for groupType, group in pairs(global.tf.plantGroups) do
+		--debug_print("looking for " .. groupType .. " member " .. group.states[1])
 		local invAmount = farmInfo.entity.get_inventory(1).get_item_count(group.states[1])
 		if invAmount > 0 then
 			return {name = group.states[1], plantGroup = group}
@@ -1093,11 +1095,11 @@ end)
 
 script.on_event(defines.events.on_tick, function(event) 
 	
-	--local total_trees = 0
-	--if global.tf.trees[event.tick] ~= nil then 
-	--	total_trees = #global.tf.trees[event.tick] 
-	--end
-	
+	-- local total_trees = 0
+	-- if global.tf.trees[event.tick] ~= nil then 
+		-- total_trees = #global.tf.trees[event.tick] 
+	-- end
+
 	tick_trees(event.tick)
 	
 	if global.tf.counter == 0 then
