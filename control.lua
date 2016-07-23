@@ -323,15 +323,6 @@ function when_loaded_mods_changed(data)
 
 	initialize()
 	
-	-- remove plantGroups that were part of another mod
-	-- TODO does this need to go here
-	-- TODO make sure this works
-	for seedTypeName, seedPrototype in pairs (global.tf.plantGroups) do
-		if game.item_prototypes[seedPrototype.states[1]] == nil then
-			global.tf.plantGroups[seedTypeName] = nil
-		end
-	end
-	
 	if data.mod_changes == nil or data.mod_changes["Treefarm-Lite"] == nil then
 		return
 	end
@@ -362,6 +353,15 @@ function when_loaded_mods_changed(data)
 	
 	if previousVersion < 4.0 then
 		data_migration_to_v4()
+	end
+	
+	
+	-- remove plantGroups that were part of another mod that is no longer loaded
+	-- MUST be at the end of on_configuration changed
+	for seedTypeName, seedPrototype in pairs (global.tf.plantGroups) do
+		if game.item_prototypes[seedPrototype.states[1]] == nil then
+			global.tf.plantGroups[seedTypeName] = nil
+		end
 	end
 end
 
@@ -927,9 +927,7 @@ function tick_farms(group_num)
 end
 
 function get_seed_from_farm(farmInfo)
-	--debug_print("looking for seeds")
 	for groupType, group in pairs(global.tf.plantGroups) do
-		--debug_print("looking for " .. groupType .. " member " .. group.states[1])
 		local invAmount = farmInfo.entity.get_inventory(1).get_item_count(group.states[1])
 		if invAmount > 0 then
 			return {name = group.states[1], plantGroup = group}
