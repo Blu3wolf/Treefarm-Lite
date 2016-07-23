@@ -713,18 +713,20 @@ function event_handle_configuration_gui_click(event)
 		return
 	end
 	
+	local player = game.players[event.player_index]
+	
 	if not playerInfo.farmInfoConfiguring.entity.valid then
 		-- the treefarm was somehow destroyed in between starting the configuration and this event
-		clear_farm_configuration_gui(event.player_index)
+		clear_farm_configuration_gui(player)
 		return
 	end
 	
 	local farmInfo = playerInfo.farmInfoConfiguring
-	local player = game.players[event.player_index]
+	
 
 	if event.element.name == "okButton" then
 	
-		clear_farm_configuration_gui(event.player_index)
+		clear_farm_configuration_gui(player)
 	
 	elseif event.element.name == "toggleActiveBut" then
 		if farmInfo.isActive then
@@ -812,8 +814,7 @@ function construct_farm_configuration_gui(playerIndex, farmInfo)
 	end
 end
 
-function clear_farm_configuration_gui(playerIndex)
-	local player = game.players[playerIndex]
+function clear_farm_configuration_gui(player)
 	local playerInfo = get_player_info(playerIndex)
 	
 	if player.gui.center.treefarmGui ~= nil then
