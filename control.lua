@@ -16,11 +16,131 @@ local immaturePlantNames
 function debug_print(message)
 
 	if game ~= nil and constIsInDebug then
-		for i, p in ipairs(game.players) do
+		for _, p in pairs(game.players) do
 			p.print(message)
 		end
 	end
 	
+end
+ 
+--
+-- data migration functions - still needed b/c some people have old versions
+--
+function v3Update()
+	if global.tf.treesToGrow == nil then
+		global.tf.treesToGrow = {}
+		for i, entInfo in pairs(global.tf.growing) do
+			local nextGrowthTick = entInfo.nextUpdate
+			local seedTable = 
+			{
+				entity = entInfo.entity,
+				state = entInfo.state,
+				efficiency = entInfo.efficiency
+			}
+			insertSeed(seedTable, nextGrowthTick)
+		end
+		global.tf.growing = nil
+	end
+end
+
+function v34Update()
+	global.tf.fieldsToMaintain = {}
+	global.tf.fieldmk2sToMaintain = {}
+	defineStandardSeedPrototypes()
+	local fieldReplace = {need = false}
+	for i, fieldEnt in ipairs(global.tf.fieldList) do
+		if fieldEnt.nextUpdate then
+			local nextUpdate = fieldEnt.nextUpdate
+			if fieldEnt.entity.name == "tf-field" then
+				insertField(fieldEnt, nextUpdate)
+			elseif fieldEnt.entity.name == "tf-fieldmk2" then
+				insertFieldmk2(fieldEnt, nextUpdate)
+			end
+		else
+			fieldReplace.need = true
+			fieldEnt.listIndex = i
+			table.insert(fieldReplace, fieldEnt)
+		end
+	end
+	if fieldReplace.need then 
+		local message = "Some fields could not be updated and need to be mined and replaced"
+		for i, player in ipairs(game.players) do
+			player.print(message)
+		end
+		for i, fieldEnt in ipairs(fieldReplace) do
+			if not i == need then
+				table.remove(global.tf.fieldList, fieldEnt.listIndex)
+			end
+		end
+	end
+end
+
+function data_migration_to_v4()
+
+	-- convert field data
+	global.tf.fieldsToMaintain = nil
+	global.tf.fieldmk2sToMaintain = nil
+	global.tf.farms = {}
+	
+	-- set to empty list in case there are no fields planted
+	global.tf.fieldList = global.tf.fieldList or {}
+	for idx, field in ipairs(global.tf.fieldList) do
+		if field.entity.valid then
+			local farmInfo = create_farm_info_for(field.entity)
+
+			-- mk1 farms are always active
+			if farmInfo.entity.name == constRobotFarmName then
+				farmInfo.isActive = field.active
+			end
+			
+			
+			farmInfo.fieldRadius = field.areaRadius
+			
+			-- previous versions as fractions of 1.0, but from v4 on, fertilizer is counted in integers
+			farmInfo.fertilizerAmount = field.fertAmount * 10
+			table.insert(global.tf.farms, farmInfo)
+		end
+	end
+	global.tf.fieldList = nil
+	
+	-- convert tree data
+	global.tf.trees = {}
+	
+	-- set to empty list in case there are no trees growing
+	global.tf.treesToGrow = global.tf.treesToGrow or {}
+	for tick, list in pairs(global.tf.treesToGrow) do
+		-- for each record, the associated farm will be found when the tree is ready to be harvested
+		global.tf.trees[tick] = list
+	end
+	global.tf.treesToGrow = nil
+	
+	-- convert seed prototypes
+	global.tf.isFertilizerAvailable = game.item_prototypes[constFertilizerName] ~= nil
+	global.tf.seedPrototypes = global.tf.seedPrototypes or {}
+	for k,v in pairs(global.tf.seedPrototypes) do
+		global.tf.plantGroups[k] = v
+	end
+	
+	populate_seed_name_to_plant_group()
+	global.tf.seedPrototypes = nil
+	
+	-- convert player data and clear all open guis
+	global.tf.playersData = global.tf.playersData or {}
+	global.tf.playerData = global.tf.playersData
+	for idx, info in ipairs(global.tf.playersData) do
+		clear_player_data(idx)
+		
+		if info.overlayStack ~= nil then
+			for i, overlay in pairs(info.overlayStack) do
+				if overlay.valid then
+					overlay.destroy()
+				end
+			end
+		end
+	end
+	
+	global.tf.playersData = nil
+
 end
 
 --
@@ -193,21 +313,15 @@ function when_saved_game_loaded()
 	-- the load event is fired before the loaded_mods_changed event
 	-- so for saved games before v4, we need to make sure the plantGroups table exists
 	
-	initialize()
-
-	populate_seed_name_to_plant_group()
+	
+	if (global.tf ~= nil and global.tf.plantGroups ~= nil) then
+		populate_seed_name_to_plant_group()
+	end
 end
 
 function when_loaded_mods_changed(data)
 
-	-- remove plantGroups that were part of another mod
-	-- TODO does this need to go here
-	-- TODO make sure this works
-	for seedTypeName, seedPrototype in pairs (global.tf.plantGroups) do
-		if game.item_prototypes[seedPrototype.states[1]] == nil then
-			global.tf.plantGroups[seedTypeName] = nil
-		end
-	end
+	initialize()
 	
 	if data.mod_changes == nil or data.mod_changes["Treefarm-Lite"] == nil then
 		return
@@ -239,6 +353,15 @@ function when_loaded_mods_changed(data)
 	
 	if previousVersion < 4.0 then
 		data_migration_to_v4()
+	end
+	
+	
+	-- remove plantGroups that were part of another mod that is no longer loaded
+	-- MUST be at the end of on_configuration changed
+	for seedTypeName, seedPrototype in pairs (global.tf.plantGroups) do
+		if game.item_prototypes[seedPrototype.states[1]] == nil then
+			global.tf.plantGroups[seedTypeName] = nil
+		end
 	end
 end
 
@@ -590,18 +713,20 @@ function event_handle_configuration_gui_click(event)
 		return
 	end
 	
+	local player = game.players[event.player_index]
+	
 	if not playerInfo.farmInfoConfiguring.entity.valid then
 		-- the treefarm was somehow destroyed in between starting the configuration and this event
-		clear_farm_configuration_gui(event.player_index)
+		clear_farm_configuration_gui(player)
 		return
 	end
 	
 	local farmInfo = playerInfo.farmInfoConfiguring
-	local player = game.players[event.player_index]
+	
 
 	if event.element.name == "okButton" then
 	
-		clear_farm_configuration_gui(event.player_index)
+		clear_farm_configuration_gui(player)
 	
 	elseif event.element.name == "toggleActiveBut" then
 		if farmInfo.isActive then
@@ -689,8 +814,7 @@ function construct_farm_configuration_gui(playerIndex, farmInfo)
 	end
 end
 
-function clear_farm_configuration_gui(playerIndex)
-	local player = game.players[playerIndex]
+function clear_farm_configuration_gui(player)
 	local playerInfo = get_player_info(playerIndex)
 	
 	if player.gui.center.treefarmGui ~= nil then
@@ -970,11 +1094,11 @@ end)
 
 script.on_event(defines.events.on_tick, function(event) 
 	
-	--local total_trees = 0
-	--if global.tf.trees[event.tick] ~= nil then 
-	--	total_trees = #global.tf.trees[event.tick] 
-	--end
-	
+	-- local total_trees = 0
+	-- if global.tf.trees[event.tick] ~= nil then 
+		-- total_trees = #global.tf.trees[event.tick] 
+	-- end
+
 	tick_trees(event.tick)
 	
 	if global.tf.counter == 0 then

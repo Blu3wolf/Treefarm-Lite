@@ -27,8 +27,8 @@ remote.add_interface("treefarm_interface",
 
 
 	clearGUIs = function()
-		for pIndex, player in ipairs(game.players) do
-			clear_farm_configuration_gui(pIndex)
+		for _, player in pairs(game.players) do
+			clear_farm_configuration_gui(player)
 		end
 	end,
 	
@@ -38,7 +38,7 @@ remote.add_interface("treefarm_interface",
 		-- if no origin is given then center on the center of the world
 		origin_position = origin_position or { 0,0 }
 		
-		-- default to the player's surface
+		-- default to the player's current surface
 		surface = surface or game.player.surface
 		
 		-- we will place treefarms in a box centered around the origin
