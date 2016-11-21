@@ -230,10 +230,10 @@ data:extend(
 		icon = "__Treefarm-Lite__/graphics/icons/germling.png",
 		order="b-b-h",
 		flags = {"placeable-neutral", "placeable-off-grid", "breaths-air"},
-		emissions_per_tick = -0.0005,
+		emissions_per_tick = -0.001,
 		minable =
 		{
-			count = 5,
+			count = 4,
 			mining_particle = "wooden-particle",
 			mining_time = 2,
 			result = "raw-wood"
@@ -330,16 +330,6 @@ data:extend(
 			}
 		}
 	},
-
-
-
-
-
-
-
-
-
-
 
 	{
 		type = "tree",
@@ -464,7 +454,7 @@ data:extend(
 		icon = "__Treefarm-Lite__/graphics/icons/coral-seed.png",
 		order="b-b-g",
 		flags = {"placeable-neutral", "placeable-off-grid", "breaths-air"},
-		emissions_per_tick = -0.0003,
+		emissions_per_tick = -0.0006,
 		minable =
 		{
 			count = 3,

@@ -12,6 +12,7 @@ local constFarmTickRate = 60
 -- maps the names of plant entities to the plant group they are from
 local plantNameToPlantGroup
 local immaturePlantNames
+local factorioTreeNames
 
 function debug_print(message)
 
@@ -163,6 +164,15 @@ function populate_seed_name_to_plant_group()
 		end
 	end
 	
+end
+
+function populate_factorio_tree_names()
+	factorioTreeNames = {}
+	for _, dta in pairs(game.entity_prototypes) do
+		if (dta.type == "tree" and string.sub(dta.name, 1, 5) == "tree-") then
+			table.insert(factorioTreeNames, dta.name)
+		end
+	end
 end
 
 function dump_element(key, value, indent)
@@ -1001,6 +1011,12 @@ function tick_trees(tick)
 		return
 	end
 
+	-- doing the population lazily here b/c the "game" function is
+	-- not available in on_save_game_loaded
+	if factorioTreeNames == nil then
+		populate_factorio_tree_names()
+	end
+	
 	for k, treeInfo in pairs(global.tf.trees[tick]) do
 		if treeInfo.entity.valid then
 			local plantGroup = plantNameToPlantGroup[treeInfo.entity.name]
@@ -1011,8 +1027,13 @@ function tick_trees(tick)
 				-- the math.min() handles cases where a plant mod decides to change the number of states a plant has
 				local newState = math.min(treeInfo.state + 1, #plantGroup.states)
 				
+				local newName = plantGroup.states[newState]
+				if (newName == "tf-mature-tree" and factorioTreeNames ~= nil and #factorioTreeNames > 0) then
+					newName = factorioTreeNames[math.random(#factorioTreeNames)]
+				end
+				
 				local newTree = treeInfo.entity.surface.create_entity({
-					name = plantGroup.states[newState], 
+					name = newName, 
 					position = treeInfo.entity.position,
 					force = treeInfo.entity.force
 				})
@@ -1080,8 +1101,8 @@ end
 script.on_init(function()
 	initialize()
 	
-	for pIndex, _ in ipairs(game.players) do
-		clear_player_data(pIndex)
+	for _, player in pairs(game.players) do
+		clear_player_data(player.index)
 	end
 
 end)
