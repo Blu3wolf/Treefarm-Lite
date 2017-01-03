@@ -93,7 +93,7 @@ data:extend
     crafting_categories = {"treefarm-mod-dummy"},
     minable = {mining_time = 1,result = "tf-field"},
     collision_box = {{-0.5,-0.5},{0.5,0.5}},
-    selection_box = {{0.75,-0.50},{9.0,7.50}},
+    selection_box = {{-0.5,-0.5},{0.5,0.5}} ,     
     result_inventory_size = 4,
     energy_usage = "180kW",
     crafting_speed = 1,
