@@ -244,6 +244,7 @@ data:extend
     order = "a[germling]",
     place_result = "tf-germling",
     fuel_value = "1MJ",
+    fuel_category = "chemical",
     stack_size = 50
   },
 
@@ -265,6 +266,7 @@ data:extend
     order = "b[coral]",
     place_result = "tf-coral-seed",
     fuel_value = "1MJ",
+    fuel_category = "chemical",
     stack_size = 50
   },
 
@@ -287,6 +289,7 @@ data:extend
     type = "technology",
     name = "tf-advanced-treefarming",
     icon = "__Treefarm-Lite__/graphics/icons/fieldmk2.png",
+    icon_size = 32,
     effects =
     {
       {
