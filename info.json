@@ -1,10 +1,10 @@
 {
   "name": "Treefarm-Lite",
-  "version": "0.5.3",
-  "factorio_version": "0.14",
+  "version": "0.5.5",
+  "factorio_version": "0.16",
   "title": "Treefarm-Lite",
-  "author": "drs, Blu3wolf, Treefarm Team",
-  "dependencies": ["base >= 0.14.1"],
+  "author": "drs, Blu3wolf, Treefarm Team, kevmert",
+  "dependencies": ["base >= 0.16.0"],
   "homepage": "https://github.com/Blu3wolf/Treefarm-Lite",
   "description": "This mod enables you to cultivate trees and/or other plants.\n\nhttps://github.com/Blu3wolf/Treefarm-Lite\n\nPublished under the GPLv3"
 }
