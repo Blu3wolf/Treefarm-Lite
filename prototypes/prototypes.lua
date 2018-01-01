@@ -7,7 +7,8 @@ data:extend
     name = "treefarm",
     order = "e",
     inventory_order = "e",
-    icon = "__Treefarm-Lite__/graphics/icons/treefarm.png"
+    icon = "__Treefarm-Lite__/graphics/icons/treefarm.png",
+	icon_size = 32,
   },
 
     {
@@ -63,6 +64,7 @@ data:extend
     type = "item",
     name = "tf-field",
     icon = "__Treefarm-Lite__/graphics/icons/field.png",
+	icon_size = 32,
     flags = {"goes-to-quickbar"},
     subgroup = "tf-buildings",
     order = "a[field]",
@@ -89,6 +91,7 @@ data:extend
     name = "tf-field",
     max_health = 100,
     icon = "__Treefarm-Lite__/graphics/icons/field.png",
+	icon_size = 32,
     flags = {"placeable-neutral", "player-creation"},
     crafting_categories = {"treefarm-mod-dummy"},
     minable = {mining_time = 1,result = "tf-field"},
@@ -130,6 +133,7 @@ data:extend
     type = "item",
     name = "tf-fieldmk2",
     icon = "__Treefarm-Lite__/graphics/icons/fieldmk2.png",
+	icon_size = 32,
     flags = {"goes-to-quickbar"},
     subgroup = "tf-buildings",
     order = "b[fieldmk2]",
@@ -151,6 +155,7 @@ data:extend
     name = "tf-fieldmk2Overlay",
     max_health = 100,
     icon = "__Treefarm-Lite__/graphics/icons/fieldmk2.png",
+	icon_size = 32,
     flags = {"placeable-neutral", "player-creation"},
     minable = {mining_time = 1,result = "tf-fieldmk2"},
     collision_box = {{-0.7, -0.7}, {0.7, 0.7}},
@@ -170,9 +175,11 @@ data:extend
     type = "logistic-container",
     name = "tf-fieldmk2",
     logistic_mode = "requester",
+	logistic_slots_count = 1,
     order = "c[fieldmk2]",
     max_health = 100,
     icon = "__Treefarm-Lite__/graphics/icons/fieldmk2.png",
+	icon_size = 32,
     flags = {"placeable-neutral", "placeable-player", "player-creation"},
     minable = {hardness = 0.2, mining_time = 1, result = "tf-fieldmk2"},
     vehicle_impact_sound =  { filename = "__base__/sound/car-metal-impact.ogg", volume = 0.65 },
@@ -239,10 +246,12 @@ data:extend
     type = "item",
     name = "tf-germling",
     icon = "__Treefarm-Lite__/graphics/icons/germling.png",
+	icon_size = 32,
     flags = {"goes-to-main-inventory"},
     subgroup = "tf-seeds",
     order = "a[germling]",
     place_result = "tf-germling",
+	fuel_category = "chemical",
     fuel_value = "1MJ",
     stack_size = 50
   },
@@ -260,10 +269,12 @@ data:extend
     type = "item",
     name = "tf-coral-seed",
     icon = "__Treefarm-Lite__/graphics/icons/coral-seed.png",
+	icon_size = 32,
     flags = {"goes-to-main-inventory"},
     subgroup = "tf-seeds",
     order = "b[coral]",
     place_result = "tf-coral-seed",
+    fuel_category = "chemical",
     fuel_value = "1MJ",
     stack_size = 50
   },
@@ -287,6 +298,7 @@ data:extend
     type = "technology",
     name = "tf-advanced-treefarming",
     icon = "__Treefarm-Lite__/graphics/icons/fieldmk2.png",
+	icon_size = 32,
     effects =
     {
       {
@@ -318,6 +330,7 @@ data:extend
     name = "tf-overlay-green",
     flags = {"placeable-neutral", "not-on-map"},
     icon = "__Treefarm-Lite__/graphics/entities/fieldmk2/tf-overlay-1.png",
+	icon_size = 32,
     subgroup = "grass",
     order = "b[decorative]-b[tf-overlay-green]",
     collision_box = {{-0.7, -0.7}, {0.7, 0.7}},
@@ -340,6 +353,7 @@ data:extend
     name = "tf-overlay-red",
     flags = {"placeable-neutral", "not-on-map"},
     icon = "__Treefarm-Lite__/graphics/entities/fieldmk2/tf-overlay-2.png",
+	icon_size = 32,
     subgroup = "grass",
     order = "b[decorative]-b[tf-overlay-red]",
     collision_box = {{-0.7, -0.7}, {0.7, 0.7}},
@@ -361,7 +375,7 @@ data:extend
 local tf_smallerButtonFont =
 {
   type = "button_style",
-  parent = "button_style",
+  parent = "button",
   font = "default"
 }
 data.raw["gui-style"].default["tf_smallerButtonFont"] = tf_smallerButtonFont
